@@ -5,6 +5,9 @@
  * (Mock = Phase 1, CapitalStake/RealtimePsx = Phase 9, via scraping).
  */
 import type { Company, Quote } from '@psx/shared';
+import { SEED_COMPANIES, SEED_QUOTES } from './seed/index.js';
+
+export * from './seed/index.js';
 
 export interface MarketDataProvider {
   readonly name: string;
@@ -13,20 +16,21 @@ export interface MarketDataProvider {
   getQuotes(symbols: string[]): Promise<Quote[]>;
 }
 
-/** Phase 0 placeholder. Real seed-backed mock arrives in Phase 1. */
+/** Seed-backed provider for offline/dev use (no DB, no network). */
 export class MockMarketDataProvider implements MarketDataProvider {
   readonly name = 'mock';
+  private readonly quotes = new Map(SEED_QUOTES.map((q) => [q.symbol, q]));
 
   async getCompanies(): Promise<Company[]> {
-    return [];
+    return SEED_COMPANIES;
   }
 
-  async getQuote(_symbol: string): Promise<Quote | null> {
-    return null;
+  async getQuote(symbol: string): Promise<Quote | null> {
+    return this.quotes.get(symbol) ?? null;
   }
 
-  async getQuotes(_symbols: string[]): Promise<Quote[]> {
-    return [];
+  async getQuotes(symbols: string[]): Promise<Quote[]> {
+    return symbols.map((s) => this.quotes.get(s)).filter((q): q is Quote => q != null);
   }
 }
 

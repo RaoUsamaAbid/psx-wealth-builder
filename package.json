@@ -18,6 +18,7 @@
     "dev": "npm run dev:api & npm run dev:web",
     "dev:api": "npm run build:packages && npm run dev --workspace @psx/api",
     "dev:web": "npm run dev --workspace @psx/web",
+    "seed": "npm run build:packages && npm run seed --workspace @psx/api",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

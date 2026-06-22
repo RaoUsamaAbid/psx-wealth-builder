@@ -1,4 +1,12 @@
-import 'dotenv/config';
+import { config as loadEnv } from 'dotenv';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
+
+// Single root .env for the monorepo. Workspace scripts run with cwd=apps/api,
+// so resolve the root explicitly (3 levels up from apps/api/{src,dist}).
+const here = dirname(fileURLToPath(import.meta.url));
+loadEnv({ path: resolve(here, '../../../.env') });
+loadEnv(); // also pick up a cwd-local .env if present (does not override)
 
 function num(value: string | undefined, fallback: number): number {
   const n = Number(value);

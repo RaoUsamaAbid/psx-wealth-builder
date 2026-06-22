@@ -44,22 +44,34 @@ cp .env.example .env        # fill in MongoDB Atlas URI, etc.
 # 3. start Redis (for jobs)
 docker compose up -d redis
 
-# 4. run dev (api + web)
+# 4. seed the database (companies, quotes, fundamentals, dividends)
+npm run seed
+
+# 5. run dev (api + web)
 npm run dev
 # api  → http://localhost:4000  (GET /health)
 # web  → http://localhost:5173
 ```
 
+## API endpoints
+
+| Method | Path                                                    | Description                                       |
+| ------ | ------------------------------------------------------- | ------------------------------------------------- |
+| GET    | `/health`                                               | service + DB status                               |
+| GET    | `/companies?index=KMI30&sector=Cement&shariahOnly=true` | filtered company list (market-cap sorted)         |
+| GET    | `/companies/:symbol`                                    | company + fundamentals + dividend history + quote |
+
 ## Scripts
 
-| Command                               | Description                 |
-| ------------------------------------- | --------------------------- |
-| `npm run dev`                         | api + web in watch mode     |
-| `npm run dev:api` / `npm run dev:web` | run one app                 |
-| `npm run build`                       | build packages then apps    |
-| `npm run lint`                        | ESLint across the repo      |
-| `npm run format`                      | Prettier write              |
-| `npm run typecheck`                   | TS typecheck all workspaces |
+| Command                               | Description                        |
+| ------------------------------------- | ---------------------------------- |
+| `npm run dev`                         | api + web in watch mode            |
+| `npm run dev:api` / `npm run dev:web` | run one app                        |
+| `npm run seed`                        | load seed market data into MongoDB |
+| `npm run build`                       | build packages then apps           |
+| `npm run lint`                        | ESLint across the repo             |
+| `npm run format`                      | Prettier write                     |
+| `npm run typecheck`                   | TS typecheck all workspaces        |
 
 ## Docker
 
