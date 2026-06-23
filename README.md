@@ -68,6 +68,9 @@ npm run dev
 | POST   | `/rebalance`                                            | hold/increase/reduce/replace actions vs target    |
 | GET    | `/market/status`                                        | live source, realtime status, last-updated        |
 | GET    | `/market/quotes` · `/market/quotes/:symbol`             | cached live quotes                                |
+| POST   | `/auth/register` · `/auth/login`                        | create account / log in → JWT                     |
+| GET    | `/auth/me`                                              | current user (Bearer token)                       |
+| —      | `/me/portfolios` · `/me/watchlist` · `/me/history`      | saved data (auth required, CRUD)                  |
 
 `POST /portfolio` body:
 
@@ -151,6 +154,19 @@ Each refresh updates an in-memory cache and pushes to connected clients over
 > (which the engines read) is gated behind `MARKET_PERSIST=true` and should stay
 > off until the scraper's column mapping is validated against the live PSX DOM —
 > otherwise a mis-parse corrupts engine inputs.
+
+### Accounts & auth
+
+JWT auth (`Authorization: Bearer <token>`), passwords hashed with bcrypt. Set
+`JWT_SECRET` (and optionally `JWT_EXPIRES_IN`, default `7d`) in `.env`.
+
+- `POST /auth/register` / `POST /auth/login` → `{ token, user }`
+- `GET /auth/me` → current user
+- `GET/POST /me/portfolios`, `GET/DELETE /me/portfolios/:id` — save named portfolio requests
+- `GET/POST /me/watchlist`, `DELETE /me/watchlist/:symbol` — track symbols
+- `GET/POST /me/history`, `DELETE /me/history/:id` — investment history
+
+All `/me/*` routes require a valid token; data is scoped per user.
 
 ## Scripts
 

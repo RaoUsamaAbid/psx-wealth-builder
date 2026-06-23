@@ -32,4 +32,10 @@ export const config = {
   // read). OFF until the scraper's column mapping is validated against the live
   // PSX DOM — otherwise a mis-parse corrupts engine inputs. Display is unaffected.
   marketPersist: (process.env.MARKET_PERSIST ?? 'false') === 'true',
+  jwtSecret: process.env.JWT_SECRET ?? 'dev-insecure-secret-change-me',
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '7d',
 } as const;
+
+if (config.env === 'production' && config.jwtSecret === 'dev-insecure-secret-change-me') {
+  console.warn('[config] WARNING: JWT_SECRET is using the insecure default in production.');
+}

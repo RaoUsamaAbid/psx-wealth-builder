@@ -16,6 +16,13 @@ import { marketRouter } from './routes/market.js';
 import { createProvider } from '@psx/market-data';
 import { QuoteService } from './market/quote-service.js';
 import { startRealtime, type RealtimeHandle } from './market/realtime.js';
+import {
+  makeAccountRepositories,
+  ensureAccountIndexes,
+  type AccountRepositories,
+} from './account/repos.js';
+import { authRouter } from './routes/auth.js';
+import { accountRouter } from './routes/account.js';
 
 const app = express();
 
@@ -30,6 +37,16 @@ async function getRepos(): Promise<Repositories> {
   const db = await connectDb();
   reposCache = makeRepositories(db);
   return reposCache;
+}
+
+// Lazy account repositories — ensures account indexes on first use.
+let accountCache: AccountRepositories | null = null;
+async function getAccount(): Promise<AccountRepositories> {
+  if (accountCache) return accountCache;
+  const db = await connectDb();
+  await ensureAccountIndexes(db);
+  accountCache = makeAccountRepositories(db);
+  return accountCache;
 }
 
 app.use('/companies', companiesRouter(getRepos));
@@ -55,6 +72,10 @@ const quoteService = new QuoteService(
   config.quoteFreshnessMs
 );
 app.use('/market', marketRouter(quoteService));
+
+// User accounts: auth + saved portfolios / watchlists / history.
+app.use('/auth', authRouter(getAccount));
+app.use('/me', accountRouter(getAccount, getRepos));
 
 app.get('/health', async (_req, res) => {
   const dbOk = await pingDb();
