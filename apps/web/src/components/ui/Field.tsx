@@ -1,7 +1,7 @@
 import type { InputHTMLAttributes, SelectHTMLAttributes, ReactNode } from 'react';
 import { cn } from '../../lib/cn';
 
-export function Label({ children, hint }: { children: ReactNode; hint?: string }) {
+function Label({ children, hint }: { children: ReactNode; hint?: string }) {
   return (
     <label className="mb-1.5 flex items-center justify-between text-xs font-medium text-slate-400">
       <span>{children}</span>

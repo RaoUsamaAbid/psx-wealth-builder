@@ -18,7 +18,7 @@ export class ApiError extends Error {
   }
 }
 
-export interface ApiOptions {
+interface ApiOptions {
   method?: string;
   body?: unknown;
   auth?: boolean; // attach bearer token (default true)

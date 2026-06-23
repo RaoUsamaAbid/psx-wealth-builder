@@ -1,5 +1,4 @@
 const PKR = new Intl.NumberFormat('en-PK', { maximumFractionDigits: 0 });
-const PKR2 = new Intl.NumberFormat('en-PK', { maximumFractionDigits: 2 });
 
 /** Compact PKR, e.g. 44.7M, 1.2B. */
 export function pkrCompact(n: number): string {
@@ -12,10 +11,6 @@ export function pkrCompact(n: number): string {
 
 export function pkr(n: number): string {
   return `PKR ${PKR.format(n)}`;
-}
-
-export function pkr2(n: number): string {
-  return `PKR ${PKR2.format(n)}`;
 }
 
 export function num(n: number): string {

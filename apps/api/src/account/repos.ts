@@ -1,7 +1,7 @@
 import { type Db, type Collection, ObjectId } from 'mongodb';
 import type { PortfolioRequest } from '@psx/shared';
 
-export const ACCOUNT_COLLECTIONS = {
+const ACCOUNT_COLLECTIONS = {
   users: 'users',
   savedPortfolios: 'savedPortfolios',
   watchlist: 'watchlist',

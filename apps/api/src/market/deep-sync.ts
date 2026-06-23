@@ -15,7 +15,7 @@ export interface DeepSyncStatus {
   lastError: string | null;
 }
 
-export type CompanyHtmlFetcher = (symbol: string) => Promise<string | null>;
+type CompanyHtmlFetcher = (symbol: string) => Promise<string | null>;
 
 const clamp = (n: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, n));
 const delay = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));

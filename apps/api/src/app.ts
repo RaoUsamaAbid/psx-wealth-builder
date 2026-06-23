@@ -73,7 +73,6 @@ export function createApp(): AppContext {
   const quoteService = new QuoteService(
     provider,
     async () => (await (await getRepos()).companies.findAll()).map((c) => c.symbol),
-    async () => {}, // no write-back; the DB is already the source of truth
     config.quoteFreshnessMs
   );
   app.use('/market', marketRouter(quoteService, getRepos));

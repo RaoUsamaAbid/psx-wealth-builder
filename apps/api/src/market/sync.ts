@@ -3,7 +3,7 @@ import type { Repositories, SyncStatus } from '../repositories.js';
 
 const SYNC_KEY = 'marketSync';
 
-export type HtmlFetcher = () => Promise<string | null>;
+type HtmlFetcher = () => Promise<string | null>;
 
 /**
  * Scrape the PSX market-watch page and replace the DB universe with the live

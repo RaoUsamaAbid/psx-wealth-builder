@@ -10,7 +10,7 @@ import { pkr, pct, num } from '../../lib/format';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Field';
-import { Stat, Center, Spinner, ErrorNote, Skeleton } from '../../components/ui/misc';
+import { Stat, ErrorNote, Skeleton } from '../../components/ui/misc';
 
 export function AllocationPanel({ request }: { request: PortfolioRequest }) {
   const { data, isLoading, isError, error } = usePortfolio(request, true);
@@ -162,13 +162,5 @@ export function AllocationPanel({ request }: { request: PortfolioRequest }) {
         </div>
       </Card>
     </div>
-  );
-}
-
-export function PanelLoading() {
-  return (
-    <Center>
-      <Spinner />
-    </Center>
   );
 }

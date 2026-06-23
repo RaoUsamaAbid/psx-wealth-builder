@@ -1,4 +1,4 @@
-import type { Company, CompanyData, Dividend, Fundamentals, Quote } from '@psx/shared';
+import type { Company, Dividend, Fundamentals, Quote } from '@psx/shared';
 import { fundamentalsFor, dividendsFor } from '../seed/generate.js';
 import { SEED_COMPANIES } from '../seed/companies.js';
 import { parsePsxConstituents, type PsxConstituent } from './constituents.js';
@@ -65,22 +65,4 @@ export function buildUniverseFromMarketWatch(html: string, asOf: string): Synced
   }
 
   return { companies, quotes, fundamentals, dividends, asOf };
-}
-
-/** Convenience: assemble CompanyData[] straight from a market-watch page. */
-export function universeToCompanyData(u: SyncedUniverse): CompanyData[] {
-  const fBy = new Map(u.fundamentals.map((f) => [f.symbol, f]));
-  const qBy = new Map(u.quotes.map((q) => [q.symbol, q]));
-  const dBy = new Map<string, Dividend[]>();
-  for (const d of u.dividends) {
-    const arr = dBy.get(d.symbol);
-    if (arr) arr.push(d);
-    else dBy.set(d.symbol, [d]);
-  }
-  return u.companies.map((company) => ({
-    company,
-    fundamentals: fBy.get(company.symbol) ?? null,
-    quote: qBy.get(company.symbol) ?? null,
-    dividends: dBy.get(company.symbol) ?? [],
-  }));
 }

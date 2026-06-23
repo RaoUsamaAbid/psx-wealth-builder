@@ -1,7 +1,7 @@
 import type { Db, Collection } from 'mongodb';
 import type { Company, Quote, Fundamentals, Dividend, Index, CompanyData } from '@psx/shared';
 
-export const COLLECTIONS = {
+const COLLECTIONS = {
   companies: 'companies',
   quotes: 'quotes',
   fundamentals: 'fundamentals',

@@ -4,7 +4,7 @@ const STRATEGIES: Strategy[] = ['dividend', 'growth', 'balanced'];
 const RISK_LEVELS: RiskLevel[] = ['low', 'medium', 'high'];
 const INDEXES: Index[] = ['KMI30', 'KMI100'];
 
-export interface ParseResult {
+interface ParseResult {
   request?: PortfolioRequest;
   error?: string;
 }
