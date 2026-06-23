@@ -31,3 +31,8 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Test
+        # Unit (engines, market-data, web) + integration (api via in-memory
+        # MongoDB) + stress. Packages are already built above.
+        run: npx vitest run

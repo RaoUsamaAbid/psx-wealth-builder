@@ -1,109 +1,10 @@
-import express, { type NextFunction, type Request, type Response } from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import { APP_NAME, type Quote } from '@psx/shared';
+import { APP_NAME } from '@psx/shared';
 import { config } from './config.js';
-import { connectDb, pingDb, closeDb } from './db.js';
-import { makeRepositories, type Repositories } from './repositories.js';
-import { companiesRouter } from './routes/companies.js';
-import { portfolioRouter } from './routes/portfolio.js';
-import { sipRouter } from './routes/sip.js';
-import { dividendsRouter } from './routes/dividends.js';
-import { projectionRouter } from './routes/projection.js';
-import { healthScoreRouter } from './routes/health-score.js';
-import { rebalanceRouter } from './routes/rebalance.js';
-import { marketRouter } from './routes/market.js';
-import { createProvider } from '@psx/market-data';
-import { QuoteService } from './market/quote-service.js';
+import { closeDb } from './db.js';
+import { createApp } from './app.js';
 import { startRealtime, type RealtimeHandle } from './market/realtime.js';
-import {
-  makeAccountRepositories,
-  ensureAccountIndexes,
-  type AccountRepositories,
-} from './account/repos.js';
-import { authRouter } from './routes/auth.js';
-import { accountRouter } from './routes/account.js';
 
-const app = express();
-
-app.use(helmet());
-app.use(cors({ origin: config.corsOrigin }));
-app.use(express.json());
-
-// Lazy, cached repositories — connects to Mongo on first data request.
-let reposCache: Repositories | null = null;
-async function getRepos(): Promise<Repositories> {
-  if (reposCache) return reposCache;
-  const db = await connectDb();
-  reposCache = makeRepositories(db);
-  return reposCache;
-}
-
-// Lazy account repositories — ensures account indexes on first use.
-let accountCache: AccountRepositories | null = null;
-async function getAccount(): Promise<AccountRepositories> {
-  if (accountCache) return accountCache;
-  const db = await connectDb();
-  await ensureAccountIndexes(db);
-  accountCache = makeAccountRepositories(db);
-  return accountCache;
-}
-
-app.use('/companies', companiesRouter(getRepos));
-app.use('/portfolio', portfolioRouter(getRepos));
-app.use('/sip', sipRouter(getRepos));
-app.use('/dividends', dividendsRouter(getRepos));
-app.use('/projection', projectionRouter(getRepos));
-app.use('/portfolio-health', healthScoreRouter(getRepos));
-app.use('/rebalance', rebalanceRouter(getRepos));
-
-// Realtime market data: provider → quote cache → socket.io push.
-const provider = createProvider(config.marketDataProvider);
-const quoteService = new QuoteService(
-  provider,
-  async () => (await (await getRepos()).companies.findAll()).map((c) => c.symbol),
-  // Persistence is gated: display-only by default so an unvalidated scrape
-  // cannot overwrite the seed quotes the engines depend on.
-  config.marketPersist
-    ? async (quotes: Quote[]) => {
-        await (await getRepos()).quotes.upsertMany(quotes);
-      }
-    : async () => {},
-  config.quoteFreshnessMs
-);
-app.use('/market', marketRouter(quoteService));
-
-// User accounts: auth + saved portfolios / watchlists / history.
-app.use('/auth', authRouter(getAccount));
-app.use('/me', accountRouter(getAccount, getRepos));
-
-app.get('/health', async (_req, res) => {
-  const dbOk = await pingDb();
-  res.json({
-    app: APP_NAME,
-    status: 'ok',
-    env: config.env,
-    db: dbOk ? 'connected' : 'unavailable',
-    provider: config.marketDataProvider,
-    timestamp: new Date().toISOString(),
-  });
-});
-
-app.get('/', (_req, res) => {
-  res.json({ app: APP_NAME, message: 'API up. See /health.' });
-});
-
-// 404
-app.use((_req: Request, res: Response) => {
-  res.status(404).json({ error: 'not found' });
-});
-
-// Centralized error handler
-app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
-  const message = err instanceof Error ? err.message : 'internal error';
-  console.error('[api] error:', message);
-  res.status(500).json({ error: 'internal server error' });
-});
+const { app, quoteService, providerName } = createApp();
 
 const server = app.listen(config.port, config.host, () => {
   console.log(`[${APP_NAME}] API listening on http://${config.host}:${config.port}`);
@@ -115,7 +16,7 @@ const realtime: RealtimeHandle = startRealtime(server, quoteService, {
   corsOrigin: config.corsOrigin,
 });
 console.log(
-  `[${APP_NAME}] realtime market data: provider=${provider.name} refresh=${config.marketRefreshMs}ms`
+  `[${APP_NAME}] realtime market data: provider=${providerName} refresh=${config.marketRefreshMs}ms`
 );
 
 async function shutdown(signal: string): Promise<void> {

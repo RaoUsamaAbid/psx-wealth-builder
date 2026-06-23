@@ -2,41 +2,78 @@ import type { Quote } from '@psx/shared';
 import * as cheerio from 'cheerio';
 
 /**
- * PSX market-watch scraper (data source: official PSX data portal,
- * https://dps.psx.com.pk/market-watch). HTML structure can change and the
- * network may be unreachable, so every entry point is best-effort and returns
- * an empty array on any failure — callers fall back to another provider.
+ * PSX market-watch scraper. Source: the official PSX data portal
+ * (https://dps.psx.com.pk/market-watch).
+ *
+ * The page renders one `<table class="tbl">` whose header cells carry
+ * `data-name` attributes (symbol, sector, listed, ldcp, open, high, low, close,
+ * change, percentChange, volume) and whose numeric body cells carry a precise
+ * machine-readable `data-order` attribute. We map columns by `data-name` (so a
+ * column re-order can't silently corrupt values) and read `data-order` (so
+ * icons, commas and `%` in the visible text never pollute the numbers).
+ *
+ * Everything is best-effort and resilient: any failure yields `[]` and callers
+ * fall back to another provider.
  */
 
 const DEFAULT_BASE = 'https://dps.psx.com.pk';
+const USER_AGENT =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36';
 
-function toNumber(text: string): number {
-  const n = Number(text.replace(/[^0-9.-]/g, ''));
+function orderNumber(rawAttr: string | undefined, fallbackText: string): number {
+  const source = rawAttr != null && rawAttr !== '' ? rawAttr : fallbackText;
+  const n = Number(source.replace(/[^0-9.+-]/g, ''));
   return Number.isFinite(n) ? n : NaN;
 }
 
-/** Parse the PSX market-watch HTML table into quotes. Pure + testable. */
-export function parsePsxMarketWatch(html: string): Quote[] {
+/**
+ * Parse the PSX market-watch HTML into quotes. Pure + deterministic (used by
+ * the scraper and by fixture-based tests).
+ */
+export function parsePsxMarketWatch(html: string, asOf = new Date().toISOString()): Quote[] {
   const $ = cheerio.load(html);
-  const asOf = new Date().toISOString();
-  const quotes: Quote[] = [];
+  const table = $('table.tbl').first().length ? $('table.tbl').first() : $('table').first();
+  if (!table.length) return [];
 
-  $('table tbody tr').each((_, row) => {
-    const cells = $(row)
-      .find('td')
-      .map((_i, c) => $(c).text().trim())
-      .get();
-    if (cells.length < 2) return;
-    const symbol = (cells[0] ?? '').toUpperCase();
+  // Map header data-name → column index.
+  const colIndex: Record<string, number> = {};
+  table.find('thead th').each((i, th) => {
+    const name = $(th).attr('data-name');
+    if (name) colIndex[name] = i;
+  });
+
+  const symbolIdx = colIndex.symbol ?? 0;
+  const closeIdx = colIndex.close;
+  const changeIdx = colIndex.change;
+  const pctIdx = colIndex.percentChange;
+  if (closeIdx == null) return []; // structure not as expected
+
+  const quotes: Quote[] = [];
+  table.find('tbody tr').each((_, row) => {
+    const tds = $(row).find('td');
+    if (tds.length <= closeIdx) return;
+
+    const symbol = $(tds[symbolIdx]).text().trim().toUpperCase();
     if (!symbol || !/^[A-Z0-9.&-]{1,12}$/.test(symbol)) return;
 
-    // Heuristic: find the current price and the change among the numeric cells.
-    const nums = cells.slice(1).map(toNumber);
-    const price = nums.find((n) => Number.isFinite(n) && n > 0);
-    if (price == null || !Number.isFinite(price)) return;
-    const change = nums.find((n, i) => i > 0 && Number.isFinite(n)) ?? 0;
-    const changePercent = price > 0 ? Math.round((change / price) * 10000) / 100 : 0;
-    quotes.push({ symbol, price, change, changePercent, asOf });
+    const closeCell = $(tds[closeIdx]);
+    const price = orderNumber(closeCell.attr('data-order'), closeCell.text());
+    if (!Number.isFinite(price) || price <= 0) return;
+
+    const change =
+      changeIdx != null
+        ? orderNumber($(tds[changeIdx]).attr('data-order'), $(tds[changeIdx]).text())
+        : 0;
+    const changePercent =
+      pctIdx != null ? orderNumber($(tds[pctIdx]).attr('data-order'), $(tds[pctIdx]).text()) : 0;
+
+    quotes.push({
+      symbol,
+      price,
+      change: Number.isFinite(change) ? change : 0,
+      changePercent: Number.isFinite(changePercent) ? changePercent : 0,
+      asOf,
+    });
   });
 
   return quotes;
@@ -46,8 +83,8 @@ export function parsePsxMarketWatch(html: string): Quote[] {
 export async function scrapePsx(baseUrl: string = DEFAULT_BASE): Promise<Quote[]> {
   try {
     const res = await fetch(`${baseUrl}/market-watch`, {
-      headers: { 'user-agent': 'psx-wealth-builder/1.0' },
-      signal: AbortSignal.timeout(8000),
+      headers: { 'user-agent': USER_AGENT },
+      signal: AbortSignal.timeout(10000),
     });
     if (!res.ok) return [];
     return parsePsxMarketWatch(await res.text());

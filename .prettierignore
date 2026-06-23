@@ -6,3 +6,6 @@ coverage
 .claude
 phase.md
 package-lock.json
+
+# Captured scraper fixtures (verbatim — do not reformat)
+**/__fixtures__/**
