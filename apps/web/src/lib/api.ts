@@ -1,8 +1,13 @@
 /**
- * Typed API client. All requests go through the Vite `/api` proxy to the
- * Express server. The bearer token is held in module scope and set by the auth
- * store so React Query hooks don't have to thread it through.
+ * Typed API client. By default requests go to the same origin via `/api`
+ * (the Vite dev proxy locally, the nginx proxy in the web Docker image). When
+ * `VITE_API_URL` is set at build time (e.g. the SPA on Vercel + the API on
+ * Render), requests go directly to that absolute API origin instead.
+ *
+ * The bearer token is held in module scope and set by the auth store.
  */
+const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
+
 let authToken: string | null = null;
 
 export function setAuthToken(token: string | null): void {
@@ -30,7 +35,10 @@ export async function api<T>(path: string, opts: ApiOptions = {}): Promise<T> {
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   if (auth && authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
-  const res = await fetch(`/api${path}`, {
+  // With an absolute API base the routes are at its root; otherwise use the
+  // same-origin `/api` proxy prefix.
+  const url = API_BASE ? `${API_BASE}${path}` : `/api${path}`;
+  const res = await fetch(url, {
     method,
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,

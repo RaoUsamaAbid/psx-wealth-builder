@@ -4,18 +4,25 @@ import type { Quote } from '@psx/shared';
 import { useMarket } from '../store/market';
 import type { MarketSnapshot } from '../lib/types';
 
+const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
+
 let socket: Socket | null = null;
 
 /**
  * Connect to the API's socket.io stream once (shared singleton) and pipe
- * quote/status events into the market store. Connects same-origin so the Vite
- * dev proxy (and nginx in prod) forward to the API.
+ * quote/status events into the market store. Same-origin by default (Vite dev
+ * proxy / nginx forward to the API); connects to VITE_API_URL when the SPA is
+ * hosted separately (e.g. Vercel) from the API.
  */
 export function useMarketSocket(): void {
   const { setConnected, applyUpdate } = useMarket();
 
   useEffect(() => {
-    if (!socket) socket = io({ path: '/socket.io', transports: ['websocket', 'polling'] });
+    if (!socket) {
+      socket = API_BASE
+        ? io(API_BASE, { path: '/socket.io', transports: ['websocket', 'polling'] })
+        : io({ path: '/socket.io', transports: ['websocket', 'polling'] });
+    }
     const s = socket;
 
     const onConnect = () => setConnected(true);
