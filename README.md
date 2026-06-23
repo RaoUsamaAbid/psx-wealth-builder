@@ -64,6 +64,7 @@ npm run dev
 | POST   | `/sip`                                                  | simulate monthly investing over time              |
 | POST   | `/dividends`                                            | forecast dividend income (reinvest ON vs OFF)     |
 | POST   | `/projection`                                           | wealth projection: 3 scenarios + CAGR + target    |
+| POST   | `/portfolio-health`                                     | portfolio + 0–100 health score with breakdown     |
 
 `POST /portfolio` body:
 
@@ -114,6 +115,12 @@ return, money-weighted CAGR (IRR), final shares, and the dividend run-rate per
 scenario. When `targetValue` is given it also solves the approximate monthly
 contribution required to reach that value (answers "what monthly to hit PKR X
 in N years?").
+
+`POST /portfolio-health` takes the same body and returns the generated
+portfolio plus a 0–100 **health score** (grade A–E) built from five components —
+diversification, risk, dividend strength, growth potential, sector exposure —
+along with the underlying metrics (effective holdings, sector concentration,
+portfolio beta/debt/yield) and human-readable notes.
 
 ## Scripts
 

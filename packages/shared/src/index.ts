@@ -247,4 +247,36 @@ export interface WealthProjection {
   targetSolve: WealthTargetSolve | null;
 }
 
+// ----- Portfolio health score -----
+
+export interface HealthComponents {
+  diversification: number; // 0..100
+  risk: number; // 0..100 (higher = safer)
+  dividendStrength: number; // 0..100
+  growthPotential: number; // 0..100
+  sectorExposure: number; // 0..100 (higher = better spread)
+}
+
+export interface HealthMetrics {
+  holdings: number;
+  effectiveHoldings: number; // 1 / HHI of weights
+  sectorCount: number;
+  topSector: string;
+  topSectorWeight: number; // 0..100
+  portfolioBeta: number;
+  portfolioDebtRatio: number;
+  portfolioDividendYield: number; // fraction
+  portfolioEpsGrowth: number; // fraction
+}
+
+export type HealthGrade = 'A' | 'B' | 'C' | 'D' | 'E';
+
+export interface HealthScore {
+  score: number; // 0..100 overall
+  grade: HealthGrade;
+  components: HealthComponents;
+  metrics: HealthMetrics;
+  notes: string[];
+}
+
 export const APP_NAME = 'PSX Wealth Builder';

@@ -10,6 +10,7 @@ import { portfolioRouter } from './routes/portfolio.js';
 import { sipRouter } from './routes/sip.js';
 import { dividendsRouter } from './routes/dividends.js';
 import { projectionRouter } from './routes/projection.js';
+import { healthScoreRouter } from './routes/health-score.js';
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use('/portfolio', portfolioRouter(getRepos));
 app.use('/sip', sipRouter(getRepos));
 app.use('/dividends', dividendsRouter(getRepos));
 app.use('/projection', projectionRouter(getRepos));
+app.use('/portfolio-health', healthScoreRouter(getRepos));
 
 app.get('/health', async (_req, res) => {
   const dbOk = await pingDb();
