@@ -157,4 +157,51 @@ export interface SipResult {
   timeline: SipMonthPoint[];
 }
 
+// ----- Dividend forecast engine -----
+
+/** One position in a dividend forecast. */
+export interface DividendPlanPosition {
+  symbol: string;
+  companyName: string;
+  sector: string;
+  allocationPercent: number; // 0..100 of each monthly contribution
+  startPrice: number; // PKR per share at month 0
+  expectedAnnualReturn: number; // fraction; price path
+  startDps: number; // most recent dividend per share (PKR)
+  dividendGrowth: number; // annual DPS growth (fraction)
+}
+
+/** Per-year snapshot of the dividend forecast. */
+export interface DividendYearPoint {
+  year: number; // 1-based
+  sharesEnd: number;
+  dividendIncome: number; // gross dividends received this year
+  cumulativeDividends: number;
+  reinvested: number; // dividends redeployed into shares (0 if reinvest off)
+  portfolioValue: number; // shares * price + uninvested cash
+}
+
+export interface DividendPositionResult {
+  symbol: string;
+  companyName: string;
+  sector: string;
+  shares: number;
+  annualDividendIncome: number; // final-year run-rate
+  cumulativeDividends: number;
+}
+
+export interface DividendForecast {
+  years: number;
+  reinvest: boolean;
+  monthlyInvestmentAmount: number;
+  totalContributed: number;
+  totalDividends: number; // cumulative gross dividends over the horizon
+  finalShares: number;
+  finalValue: number;
+  finalAnnualDividendIncome: number; // last-year income (run-rate)
+  finalMonthlyDividendIncome: number; // run-rate / 12
+  perYear: DividendYearPoint[];
+  positions: DividendPositionResult[];
+}
+
 export const APP_NAME = 'PSX Wealth Builder';

@@ -62,6 +62,7 @@ npm run dev
 | GET    | `/companies/:symbol`                                    | company + fundamentals + dividend history + quote |
 | POST   | `/portfolio`                                            | generate a portfolio from inputs (see below)      |
 | POST   | `/sip`                                                  | simulate monthly investing over time              |
+| POST   | `/dividends`                                            | forecast dividend income (reinvest ON vs OFF)     |
 
 `POST /portfolio` body:
 
@@ -86,6 +87,13 @@ holding's EPS growth), and `includeTimeline` (default `true`). It simulates
 monthly contributions — whole-share accumulation with carried leftover cash —
 and returns per-position shares/average-cost/market-value plus a month-by-month
 timeline and total gain.
+
+`POST /dividends` takes the same body, plus optional `years` (default
+`round(durationYears)`, 1–50). It forecasts annual dividend income while
+contributing monthly, under both scenarios — **reinvest OFF** (dividends paid
+out as cash) and **reinvest ON** (DRIP: dividends buy more shares) — returning a
+per-year series, cumulative dividends, final shares/value, and the final
+monthly dividend run-rate (answers "how much passive income after N years?").
 
 ## Scripts
 

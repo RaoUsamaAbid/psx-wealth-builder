@@ -8,6 +8,7 @@ import { makeRepositories, type Repositories } from './repositories.js';
 import { companiesRouter } from './routes/companies.js';
 import { portfolioRouter } from './routes/portfolio.js';
 import { sipRouter } from './routes/sip.js';
+import { dividendsRouter } from './routes/dividends.js';
 
 const app = express();
 
@@ -27,6 +28,7 @@ async function getRepos(): Promise<Repositories> {
 app.use('/companies', companiesRouter(getRepos));
 app.use('/portfolio', portfolioRouter(getRepos));
 app.use('/sip', sipRouter(getRepos));
+app.use('/dividends', dividendsRouter(getRepos));
 
 app.get('/health', async (_req, res) => {
   const dbOk = await pingDb();
