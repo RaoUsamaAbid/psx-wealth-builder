@@ -279,4 +279,35 @@ export interface HealthScore {
   notes: string[];
 }
 
+// ----- Rebalancing engine -----
+
+/** A position the user currently holds. */
+export interface CurrentHolding {
+  symbol: string;
+  shares: number;
+}
+
+export type RebalanceActionType = 'hold' | 'increase' | 'reduce' | 'replace';
+
+export interface RebalanceAction {
+  symbol: string;
+  companyName: string;
+  sector: string;
+  action: RebalanceActionType;
+  currentWeight: number; // 0..100 of current portfolio value
+  targetWeight: number; // 0..100 ideal allocation
+  currentValue: number; // PKR
+  score: number; // 0..100 strategy score (0 if untracked)
+  replaceWith?: string; // suggested better symbol (for 'replace')
+  reasons: string[];
+}
+
+export interface RebalanceResult {
+  request: PortfolioRequest;
+  currentValue: number; // total PKR value of current holdings
+  band: number; // tolerance (percentage points) before acting
+  actions: RebalanceAction[];
+  summary: Record<RebalanceActionType, number>;
+}
+
 export const APP_NAME = 'PSX Wealth Builder';

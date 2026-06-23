@@ -65,6 +65,7 @@ npm run dev
 | POST   | `/dividends`                                            | forecast dividend income (reinvest ON vs OFF)     |
 | POST   | `/projection`                                           | wealth projection: 3 scenarios + CAGR + target    |
 | POST   | `/portfolio-health`                                     | portfolio + 0–100 health score with breakdown     |
+| POST   | `/rebalance`                                            | hold/increase/reduce/replace actions vs target    |
 
 `POST /portfolio` body:
 
@@ -121,6 +122,14 @@ portfolio plus a 0–100 **health score** (grade A–E) built from five componen
 diversification, risk, dividend strength, growth potential, sector exposure —
 along with the underlying metrics (effective holdings, sector concentration,
 portfolio beta/debt/yield) and human-readable notes.
+
+`POST /rebalance` takes the same body, plus `currentHoldings: [{ symbol, shares
+}]` (required) and optional `band` (tolerance in percentage points, default 5).
+It compares the current holdings to the ideal target and returns per-position
+actions — **hold / increase / reduce / replace** — detecting overweight
+positions, sector concentration, dividend deterioration, and better
+opportunities (high-scoring names not yet held), each with reasons and a
+suggested replacement where relevant.
 
 ## Scripts
 
