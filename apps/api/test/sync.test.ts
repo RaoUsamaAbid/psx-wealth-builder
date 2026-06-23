@@ -8,10 +8,9 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 import { SEED_COMPANIES, SEED_QUOTES, SEED_FUNDAMENTALS, SEED_DIVIDENDS } from '@psx/market-data';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const fixture = readFileSync(
-  resolve(here, '../../../packages/market-data/src/scraping/__fixtures__/psx-market-watch.html'),
-  'utf-8'
-);
+const fixturesDir = resolve(here, '../../../packages/market-data/src/scraping/__fixtures__');
+const fixture = readFileSync(resolve(fixturesDir, 'psx-market-watch.html'), 'utf-8');
+const companyFixture = readFileSync(resolve(fixturesDir, 'psx-company-ogdc.html'), 'utf-8');
 
 let mongo: MongoMemoryServer;
 let app: Express;
@@ -73,5 +72,35 @@ describe('market sync', () => {
   it('POST /market/sync requires authentication', async () => {
     const res = await request(app).post('/market/sync');
     expect(res.status).toBe(401);
+  });
+
+  it('POST /market/sync/deep requires authentication', async () => {
+    const res = await request(app).post('/market/sync/deep');
+    expect(res.status).toBe(401);
+  });
+});
+
+describe('deep sync', () => {
+  it('upserts real fundamentals + sector + market cap WITHOUT pruning', async () => {
+    const { runDeepSync, getDeepSyncStatus } = await import('../dist/market/deep-sync.js');
+    const before = await repos.companies.count(); // 4 from the quick sync above
+    expect(before).toBe(4);
+
+    await runDeepSync(repos, { fetchCompanyHtml: async () => companyFixture, delayMs: 0 });
+
+    // No pruning — every company survives, just enriched in place.
+    expect(await repos.companies.count()).toBe(before);
+
+    const f = await repos.fundamentals.findBySymbol('OGDC');
+    expect(f.eps).toBeCloseTo(39.5, 1); // real EPS replaced the estimate
+    expect(f.epsGrowth).toBeCloseTo(-0.1871, 3);
+
+    const c = await repos.companies.findBySymbol('OGDC');
+    expect(c.marketCap).toBeGreaterThan(0); // real market cap filled in
+    expect(c.sector).toBe('Oil & Gas Exploration');
+
+    const status = await getDeepSyncStatus(repos);
+    expect(status.running).toBe(false);
+    expect(status.updated).toBe(before);
   });
 });

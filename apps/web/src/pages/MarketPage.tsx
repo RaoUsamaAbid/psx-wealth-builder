@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Activity, Radio, RefreshCw } from 'lucide-react';
+import { Activity, Radio, RefreshCw, Database } from 'lucide-react';
 import { useMarket } from '../store/market';
 import { timeAgo } from '../lib/format';
 import { api, ApiError } from '../lib/api';
-import type { SyncStatus } from '../lib/types';
+import type { SyncStatus, SyncStatusResponse } from '../lib/types';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge, Center, Spinner, ErrorNote } from '../components/ui/misc';
@@ -20,13 +20,20 @@ export function MarketPage() {
 
   const sync = useQuery({
     queryKey: ['market', 'sync'],
-    queryFn: () => api<{ sync: SyncStatus | null }>('/market/sync/status'),
+    queryFn: () => api<SyncStatusResponse>('/market/sync/status'),
+    refetchInterval: (q) => (q.state.data?.deep?.running ? 1500 : false),
   });
   const syncMut = useMutation({
     mutationFn: () => api<{ sync: SyncStatus }>('/market/sync', { method: 'POST' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['market', 'sync'] }),
   });
+  const deepMut = useMutation({
+    mutationFn: () => api<{ started: boolean }>('/market/sync/deep', { method: 'POST' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['market', 'sync'] }),
+  });
   const last = sync.data?.sync;
+  const deep = sync.data?.deep;
+  const deepPct = deep && deep.total > 0 ? Math.round((deep.processed / deep.total) * 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -86,6 +93,53 @@ export function MarketPage() {
             Synced {syncMut.data.sync.companies} companies in {syncMut.data.sync.durationMs}ms. The
             board updates momentarily.
           </p>
+        )}
+
+        {/* Deep sync: real fundamentals from company pages */}
+        <div className="mt-4 flex flex-col gap-3 border-t border-line pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-white">Deep sync · real fundamentals</p>
+            <p className="mt-0.5 text-xs text-slate-400">
+              Scrapes each company page for real sector, market cap, P/E, EPS &amp; growth. Runs in
+              the background (~1–2 min).
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => deepMut.mutate()}
+            loading={deepMut.isPending}
+            disabled={deep?.running}
+          >
+            <Database className="h-4 w-4" />
+            {deep?.running ? 'Running…' : 'Deep sync'}
+          </Button>
+        </div>
+        {deep?.running && (
+          <div className="mt-3">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-ink-700">
+              <div
+                className="h-full rounded-full bg-emerald transition-all"
+                style={{ width: `${deepPct}%` }}
+              />
+            </div>
+            <p className="mt-1.5 text-xs text-slate-400">
+              {deep.processed} / {deep.total} companies · {deep.updated} updated
+            </p>
+          </div>
+        )}
+        {deep && !deep.running && deep.finishedAt && (
+          <p className="mt-3 text-xs text-slate-400">
+            Deep sync finished {timeAgo(deep.finishedAt)} · {deep.updated} companies enriched.
+          </p>
+        )}
+        {deepMut.isError && (
+          <div className="mt-3">
+            <ErrorNote
+              message={
+                deepMut.error instanceof ApiError ? deepMut.error.message : 'Deep sync failed.'
+              }
+            />
+          </div>
         )}
       </Card>
 

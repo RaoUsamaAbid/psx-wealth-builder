@@ -66,6 +66,21 @@ export interface SyncStatus {
   source: string;
 }
 
+export interface DeepSyncStatus {
+  running: boolean;
+  total: number;
+  processed: number;
+  updated: number;
+  startedAt: string;
+  finishedAt: string | null;
+  lastError: string | null;
+}
+
+export interface SyncStatusResponse {
+  sync: SyncStatus | null;
+  deep: DeepSyncStatus | null;
+}
+
 export interface SavedPortfolio {
   id: string;
   name: string;

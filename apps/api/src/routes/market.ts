@@ -4,6 +4,7 @@ import type { Repositories } from '../repositories.js';
 import { asyncHandler } from '../async-handler.js';
 import { requireAuth } from '../auth/jwt.js';
 import { runMarketSync, getSyncStatus } from '../market/sync.js';
+import { runDeepSync, getDeepSyncStatus, isDeepSyncRunning } from '../market/deep-sync.js';
 
 type ReposResolver = () => Promise<Repositories>;
 
@@ -29,11 +30,12 @@ export function marketRouter(quotes: QuoteService, getRepos: ReposResolver): Rou
     res.json({ ...quotes.snapshot(), quote });
   });
 
-  // GET /market/sync/status — last sync time + counts.
+  // GET /market/sync/status — quick + deep sync state.
   router.get(
     '/sync/status',
     asyncHandler(async (_req, res) => {
-      res.json({ sync: await getSyncStatus(await getRepos()) });
+      const repos = await getRepos();
+      res.json({ sync: await getSyncStatus(repos), deep: await getDeepSyncStatus(repos) });
     })
   );
 
@@ -46,6 +48,21 @@ export function marketRouter(quotes: QuoteService, getRepos: ReposResolver): Rou
       const status = await runMarketSync(await getRepos());
       await quotes.refresh(); // immediately reflect new prices on the live board
       res.json({ sync: status });
+    })
+  );
+
+  // POST /market/sync/deep — start the background deep sync (real fundamentals).
+  router.post(
+    '/sync/deep',
+    requireAuth,
+    asyncHandler(async (_req, res) => {
+      if (isDeepSyncRunning()) {
+        res.status(409).json({ error: 'a deep sync is already running' });
+        return;
+      }
+      const repos = await getRepos();
+      void runDeepSync(repos); // fire-and-forget; poll /sync/status for progress
+      res.status(202).json({ started: true });
     })
   );
 

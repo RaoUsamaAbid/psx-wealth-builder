@@ -18,6 +18,11 @@ export { scrapePsx, parsePsxMarketWatch, fetchPsxMarketWatchHtml } from './scrap
 export { scrapeCapitalStake, parseCapitalStake } from './scraping/capitalstake.js';
 export { parsePsxConstituents, type PsxConstituent } from './sync/constituents.js';
 export {
+  parsePsxCompany,
+  fetchPsxCompanyHtml,
+  type PsxCompanyDetails,
+} from './scraping/company.js';
+export {
   buildUniverseFromMarketWatch,
   buildSectorMap,
   universeToCompanyData,
