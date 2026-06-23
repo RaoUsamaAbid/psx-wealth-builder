@@ -1,3 +1,59 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-ink-950 text-slate-200 antialiased;
+    background-image:
+      radial-gradient(900px 500px at 85% -10%, rgba(16, 185, 129, 0.08), transparent 60%),
+      radial-gradient(800px 500px at 0% 0%, rgba(34, 211, 238, 0.06), transparent 55%);
+    background-attachment: fixed;
+  }
+  ::selection {
+    @apply bg-emerald/30 text-white;
+  }
+  /* Scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-ink-600;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-line bg-ink-850/70 shadow-card backdrop-blur-sm;
+  }
+  .stat-num {
+    @apply font-mono tabular-nums;
+  }
+  .input-base {
+    @apply w-full rounded-lg border border-line bg-ink-900/80 px-3 py-2 text-sm text-slate-100
+      placeholder:text-slate-500 outline-none transition
+      focus:border-emerald/60 focus:ring-2 focus:ring-emerald/20;
+  }
+  .skeleton {
+    @apply relative overflow-hidden rounded-md bg-ink-700/60;
+  }
+  .skeleton::after {
+    @apply absolute inset-0 -translate-x-full;
+    content: '';
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+    animation: shimmer 1.4s infinite;
+  }
+}

@@ -32,6 +32,25 @@ packages/market-data   market-data provider abstraction
 docs/
 ```
 
+## Frontend
+
+A full React MVP (dark fintech UI) drives every endpoint. Login-required;
+JWT persisted client-side. Stack: React + Vite + TS, TailwindCSS, React Query,
+Zustand, Recharts, socket.io-client, react-router.
+
+- **Planner** — inputs → tabs: Allocation (donut + holdings), Health (radar +
+  score ring), SIP (growth area chart), Dividends (reinvest toggle), Projection
+  (3 scenarios + goal solver). Save plans to your account.
+- **Companies** — searchable/filterable table + detail drawer (fundamentals,
+  dividend history, quote).
+- **Market** — live quote board + ticker over socket.io with freshness status.
+- **Rebalance** — enter holdings → hold/increase/reduce/replace actions.
+- **Account** — saved plans, watchlist, investment history.
+
+```bash
+npm run dev    # api :4000 + web :5173
+```
+
 ## Getting started
 
 ```bash

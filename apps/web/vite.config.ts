@@ -5,11 +5,17 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    allowedHosts: ['localhost', 'host.docker.internal'],
     proxy: {
       '/api': {
         target: process.env.VITE_API_URL ?? 'http://localhost:4000',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+      '/socket.io': {
+        target: process.env.VITE_API_URL ?? 'http://localhost:4000',
+        changeOrigin: true,
+        ws: true,
       },
     },
   },

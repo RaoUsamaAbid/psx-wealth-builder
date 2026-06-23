@@ -21,7 +21,7 @@ export const config = {
   mongoUri: process.env.MONGODB_URI ?? '',
   mongoDb: process.env.MONGODB_DB ?? 'psx_wealth_builder',
   redisUrl: process.env.REDIS_URL ?? 'redis://localhost:6379',
-  marketDataProvider: (process.env.MARKET_DATA_PROVIDER ?? 'realtime') as
+  marketDataProvider: (process.env.MARKET_DATA_PROVIDER ?? 'simulated') as
     | 'mock'
     | 'simulated'
     | 'capitalstake'
