@@ -1,5 +1,5 @@
 import type { Db, Collection } from 'mongodb';
-import type { Company, Quote, Fundamentals, Dividend, Index } from '@psx/shared';
+import type { Company, Quote, Fundamentals, Dividend, Index, CompanyData } from '@psx/shared';
 
 export const COLLECTIONS = {
   companies: 'companies',
@@ -62,6 +62,10 @@ export class QuoteRepository {
     return this.col.findOne({ symbol }, { projection: { _id: 0 } });
   }
 
+  async findAll(): Promise<Quote[]> {
+    return this.col.find({}, { projection: { _id: 0 } }).toArray();
+  }
+
   async upsertMany(quotes: Quote[]): Promise<void> {
     if (quotes.length === 0) return;
     await this.col.bulkWrite(
@@ -80,6 +84,10 @@ export class FundamentalsRepository {
 
   async findBySymbol(symbol: string): Promise<Fundamentals | null> {
     return this.col.findOne({ symbol }, { projection: { _id: 0 } });
+  }
+
+  async findAll(): Promise<Fundamentals[]> {
+    return this.col.find({}, { projection: { _id: 0 } }).toArray();
   }
 
   async upsertMany(rows: Fundamentals[]): Promise<void> {
@@ -103,6 +111,10 @@ export class DividendRepository {
       .find({ symbol }, { projection: { _id: 0 } })
       .sort({ year: 1 })
       .toArray();
+  }
+
+  async findAll(): Promise<Dividend[]> {
+    return this.col.find({}, { projection: { _id: 0 } }).toArray();
   }
 
   async upsertMany(rows: Dividend[]): Promise<void> {
@@ -142,4 +154,33 @@ export function makeRepositories(db: Db): Repositories {
     fundamentals: new FundamentalsRepository(db),
     dividends: new DividendRepository(db),
   };
+}
+
+/**
+ * Load the full candidate universe (company + fundamentals + quote + dividend
+ * history) in four bulk queries, joined in memory by symbol.
+ */
+export async function loadUniverse(repos: Repositories): Promise<CompanyData[]> {
+  const [companies, fundamentals, quotes, dividends] = await Promise.all([
+    repos.companies.findAll(),
+    repos.fundamentals.findAll(),
+    repos.quotes.findAll(),
+    repos.dividends.findAll(),
+  ]);
+
+  const fBySym = new Map(fundamentals.map((f) => [f.symbol, f]));
+  const qBySym = new Map(quotes.map((q) => [q.symbol, q]));
+  const dBySym = new Map<string, Dividend[]>();
+  for (const d of dividends) {
+    const arr = dBySym.get(d.symbol);
+    if (arr) arr.push(d);
+    else dBySym.set(d.symbol, [d]);
+  }
+
+  return companies.map((company) => ({
+    company,
+    fundamentals: fBySym.get(company.symbol) ?? null,
+    quote: qBySym.get(company.symbol) ?? null,
+    dividends: dBySym.get(company.symbol) ?? [],
+  }));
 }

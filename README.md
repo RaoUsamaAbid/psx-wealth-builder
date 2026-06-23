@@ -60,6 +60,24 @@ npm run dev
 | GET    | `/health`                                               | service + DB status                               |
 | GET    | `/companies?index=KMI30&sector=Cement&shariahOnly=true` | filtered company list (market-cap sorted)         |
 | GET    | `/companies/:symbol`                                    | company + fundamentals + dividend history + quote |
+| POST   | `/portfolio`                                            | generate a portfolio from inputs (see below)      |
+
+`POST /portfolio` body:
+
+```jsonc
+{
+  "monthlyInvestmentAmount": 50000, // PKR/month (required, > 0)
+  "durationYears": 15, // required, > 0 (used by projections in Phase 5)
+  "strategy": "dividend", // dividend | growth | balanced
+  "riskLevel": "low", // low | medium | high
+  "index": "KMI30", // optional: KMI30 | KMI100 (default all)
+  "holdingsCount": 10, // optional: 1–30 (default 10)
+  "maxPerSector": 2, // optional: 1–10 sector cap (default 2)
+}
+```
+
+Returns scored holdings with allocation %, whole-share purchase plan, amount
+invested this month, and leftover cash.
 
 ## Scripts
 

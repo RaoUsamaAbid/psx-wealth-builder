@@ -54,4 +54,61 @@ export interface Dividend {
 
 export const INDICES: readonly Index[] = ['KMI30', 'KMI100'];
 
+/** Everything known about one company, bundled for the engines. */
+export interface CompanyData {
+  company: Company;
+  fundamentals: Fundamentals | null;
+  quote: Quote | null;
+  dividends: Dividend[];
+}
+
+/** User inputs that drive portfolio generation. */
+export interface PortfolioRequest {
+  monthlyInvestmentAmount: number; // PKR per month
+  durationYears: number;
+  strategy: Strategy;
+  riskLevel: RiskLevel;
+  index?: Index; // restrict universe (default: all KMI100)
+  holdingsCount?: number; // target number of holdings (default 10)
+  maxPerSector?: number; // diversification cap (default 2)
+}
+
+/** Per-company feature scores (0..1, higher = better) used by scoring. */
+export interface ScoreFeatures {
+  yield: number;
+  dividendGrowth: number;
+  epsGrowth: number;
+  revenueGrowth: number;
+  roe: number;
+  value: number; // cheaper P/E = higher
+  lowBeta: number;
+  lowDebt: number;
+}
+
+export interface ScoredCompany {
+  company: Company;
+  score: number; // 0..100
+  features: ScoreFeatures;
+}
+
+export interface PortfolioHolding {
+  symbol: string;
+  companyName: string;
+  sector: string;
+  score: number;
+  allocationPercent: number; // 0..100
+  targetAmount: number; // PKR allocated this month
+  price: number; // PKR per share
+  shares: number; // whole shares purchasable
+  cost: number; // shares * price
+}
+
+export interface Portfolio {
+  request: PortfolioRequest;
+  holdings: PortfolioHolding[];
+  investedThisMonth: number; // sum of holding costs
+  leftoverCash: number; // monthly amount not deployable into whole shares
+  generatedAt: string; // ISO timestamp
+}
+
 export const APP_NAME = 'PSX Wealth Builder';

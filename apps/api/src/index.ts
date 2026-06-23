@@ -6,6 +6,7 @@ import { config } from './config.js';
 import { connectDb, pingDb, closeDb } from './db.js';
 import { makeRepositories, type Repositories } from './repositories.js';
 import { companiesRouter } from './routes/companies.js';
+import { portfolioRouter } from './routes/portfolio.js';
 
 const app = express();
 
@@ -23,6 +24,7 @@ async function getRepos(): Promise<Repositories> {
 }
 
 app.use('/companies', companiesRouter(getRepos));
+app.use('/portfolio', portfolioRouter(getRepos));
 
 app.get('/health', async (_req, res) => {
   const dbOk = await pingDb();
