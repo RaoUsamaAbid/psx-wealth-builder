@@ -17,13 +17,22 @@ import { forecastDividends } from './dividend.js';
  * answers "what monthly contribution reaches PKR X?".
  */
 
-export const SCENARIO_FACTORS: Record<ScenarioName, number> = {
-  conservative: 0.6,
-  base: 1.0,
-  optimistic: 1.4,
+/**
+ * Scenarios shift each holding's expected return by a fixed annual band rather
+ * than scaling it. An additive band guarantees conservative ≤ base ≤ optimistic
+ * for ANY sign of the base return — a multiplicative factor inverts the ordering
+ * when the base return is negative (e.g. a name with negative recent EPS growth).
+ */
+export const SCENARIO_OFFSETS: Record<ScenarioName, number> = {
+  conservative: -0.04,
+  base: 0,
+  optimistic: 0.04,
 };
 
-const clampReturn = (r: number): number => Math.max(-0.5, Math.min(0.5, r));
+// Long-term equity price return is floored at 0: a multi-decade SIP shouldn't
+// model a stock compounding negative forever, and a negative path interacts
+// perversely with dividend reinvestment (cheaper shares → runaway share count).
+const clampReturn = (r: number): number => Math.max(0, Math.min(0.5, r));
 
 /** Money-weighted annualized return from level annual contributions → FV. */
 export function annualizedIrr(
@@ -64,13 +73,13 @@ function projectScenario(
   scenario: ScenarioName,
   opts: { monthlyInvestmentAmount: number; years: number; reinvest: boolean }
 ): WealthScenarioResult {
-  const factor = SCENARIO_FACTORS[scenario];
-  const scaledPlan: DividendPlanPosition[] = plan.map((p) => ({
+  const offset = SCENARIO_OFFSETS[scenario];
+  const adjustedPlan: DividendPlanPosition[] = plan.map((p) => ({
     ...p,
-    expectedAnnualReturn: clampReturn(p.expectedAnnualReturn * factor),
+    expectedAnnualReturn: clampReturn(p.expectedAnnualReturn + offset),
   }));
 
-  const f = forecastDividends(scaledPlan, {
+  const f = forecastDividends(adjustedPlan, {
     monthlyInvestmentAmount: opts.monthlyInvestmentAmount,
     years: opts.years,
     reinvest: opts.reinvest,
@@ -80,7 +89,7 @@ function projectScenario(
 
   return {
     scenario,
-    returnFactor: factor,
+    returnAdjustment: offset,
     totalInvested: f.totalContributed,
     futureValue: f.finalValue,
     totalDividends: f.totalDividends,

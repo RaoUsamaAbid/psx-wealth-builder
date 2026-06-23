@@ -1,5 +1,5 @@
 import type { CompanyData, DividendPlanPosition, Portfolio } from '@psx/shared';
-import { dividendCagr, dividendPlanFromPortfolio } from '@psx/engines';
+import { dividendPlanFromPortfolio } from '@psx/engines';
 
 const clamp = (n: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, n));
 
@@ -10,9 +10,10 @@ function latestDps(d: CompanyData): number {
 }
 
 /**
- * Build a dividend/wealth plan from a generated portfolio + the universe:
- * price growth from clamped EPS growth, latest DPS from history, dividend growth
- * from clamped dividend CAGR.
+ * Build a dividend/wealth plan from a generated portfolio + the universe.
+ * The price-return assumption is EPS growth floored at 0 — a long-term path is
+ * never modelled as a perpetual decline (the real, possibly-negative EPS growth
+ * still drives scoring, just not the multi-decade price projection).
  */
 export function buildDividendPlan(
   universe: CompanyData[],
@@ -22,9 +23,8 @@ export function buildDividendPlan(
   return dividendPlanFromPortfolio(portfolio, (symbol) => {
     const d = bySymbol.get(symbol);
     return {
-      expectedAnnualReturn: clamp(d?.fundamentals?.epsGrowth ?? 0, -0.1, 0.3),
+      expectedAnnualReturn: clamp(d?.fundamentals?.epsGrowth ?? 0, 0, 0.3),
       startDps: d ? latestDps(d) : 0,
-      dividendGrowth: clamp(d ? dividendCagr(d.dividends) : 0, 0, 0.25),
     };
   });
 }

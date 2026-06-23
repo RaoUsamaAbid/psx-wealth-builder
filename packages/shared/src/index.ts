@@ -178,8 +178,7 @@ export interface DividendPlanPosition {
   allocationPercent: number; // 0..100 of each monthly contribution
   startPrice: number; // PKR per share at month 0
   expectedAnnualReturn: number; // fraction; price path
-  startDps: number; // most recent dividend per share (PKR)
-  dividendGrowth: number; // annual DPS growth (fraction)
+  startDps: number; // most recent dividend per share (PKR); yield = startDps / startPrice
 }
 
 /** Per-year snapshot of the dividend forecast. */
@@ -221,7 +220,7 @@ export type ScenarioName = 'conservative' | 'base' | 'optimistic';
 
 export interface WealthScenarioResult {
   scenario: ScenarioName;
-  returnFactor: number; // multiplier applied to expected returns
+  returnAdjustment: number; // annual return offset applied (e.g. -0.04, 0, +0.04)
   totalInvested: number; // total contributions
   futureValue: number; // projected portfolio value (incl. cash)
   totalDividends: number; // cumulative dividends over horizon

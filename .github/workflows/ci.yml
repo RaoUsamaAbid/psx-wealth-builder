@@ -44,9 +44,14 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
+      # secrets can't be used in `if:`, so surface them via env first.
       - name: Trigger API deploy
-        if: ${{ secrets.RENDER_DEPLOY_HOOK_API != '' }}
-        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_API }}"
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_API }}
+        if: env.HOOK != ''
+        run: curl -fsS -X POST "$HOOK"
       - name: Trigger web deploy
-        if: ${{ secrets.RENDER_DEPLOY_HOOK_WEB != '' }}
-        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_WEB }}"
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_WEB }}
+        if: env.HOOK != ''
+        run: curl -fsS -X POST "$HOOK"

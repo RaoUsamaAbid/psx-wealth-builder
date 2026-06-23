@@ -35,7 +35,6 @@ const plan: DividendPlanPosition[] = [
     startPrice: 100,
     expectedAnnualReturn: 0.12,
     startDps: 6,
-    dividendGrowth: 0.1,
   },
   {
     symbol: 'B',
@@ -45,7 +44,6 @@ const plan: DividendPlanPosition[] = [
     startPrice: 80,
     expectedAnnualReturn: 0.1,
     startDps: 5,
-    dividendGrowth: 0.08,
   },
 ];
 
@@ -56,6 +54,23 @@ describe('projectWealth', () => {
     expect(fv('conservative')).toBeLessThan(fv('base'));
     expect(fv('base')).toBeLessThan(fv('optimistic'));
     expect(r.scenarios).toHaveLength(3);
+  });
+
+  it('stays monotonic even when base returns are negative (real-data regression)', () => {
+    // Some real KMI names have negative recent EPS growth → negative expected
+    // return. An additive scenario band must keep conservative ≤ base ≤ optimistic.
+    const negative: DividendPlanPosition[] = plan.map((p) => ({
+      ...p,
+      expectedAnnualReturn: -0.15,
+    }));
+    const r = projectWealth(negative, {
+      monthlyInvestmentAmount: 40000,
+      years: 15,
+      reinvest: true,
+    });
+    const fv = (name: string) => r.scenarios.find((s) => s.scenario === name)!.futureValue;
+    expect(fv('conservative')).toBeLessThanOrEqual(fv('base'));
+    expect(fv('base')).toBeLessThanOrEqual(fv('optimistic'));
   });
 
   it('solves an approximate required monthly for a target value', () => {

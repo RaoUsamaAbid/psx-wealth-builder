@@ -80,7 +80,12 @@ export function forecastDividends(
 
       for (const s of states) {
         const price = priceAt(s.plan, s.priceRate, m);
-        const dps = s.plan.startDps * (1 + s.plan.dividendGrowth) ** year;
+        // Dividends as a constant yield on the evolving price (DPS grows with
+        // the share price). This keeps reinvestment well-behaved — share count
+        // compounds at the yield rate regardless of the price path — so higher
+        // expected return always means higher value (monotonic scenarios).
+        const startYield = s.plan.startPrice > 0 ? s.plan.startDps / s.plan.startPrice : 0;
+        const dps = startYield * price;
         const income = s.shares * dps;
         s.cumulativeDividends += income;
         s.lastYearIncome = income;
@@ -146,17 +151,13 @@ export function forecastDividends(
 }
 
 /**
- * Build a dividend plan from a generated portfolio. The callbacks supply each
- * holding's price growth, latest dividend-per-share, and dividend growth rate
- * (typically derived from fundamentals + dividend history).
+ * Build a dividend plan from a generated portfolio. The callback supplies each
+ * holding's expected price return and latest dividend-per-share (the dividend
+ * yield is `startDps / startPrice`).
  */
 export function dividendPlanFromPortfolio(
   portfolio: Portfolio,
-  meta: (symbol: string) => {
-    expectedAnnualReturn: number;
-    startDps: number;
-    dividendGrowth: number;
-  }
+  meta: (symbol: string) => { expectedAnnualReturn: number; startDps: number }
 ): DividendPlanPosition[] {
   return portfolio.holdings.map((h) => {
     const m = meta(h.symbol);
@@ -168,7 +169,6 @@ export function dividendPlanFromPortfolio(
       startPrice: h.price,
       expectedAnnualReturn: m.expectedAnnualReturn,
       startDps: m.startDps,
-      dividendGrowth: m.dividendGrowth,
     };
   });
 }

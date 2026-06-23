@@ -56,7 +56,6 @@ const divPlan: DividendPlanPosition[] = [
     startPrice: 100,
     expectedAnnualReturn: 0.08,
     startDps: 8,
-    dividendGrowth: 0.1,
   },
 ];
 

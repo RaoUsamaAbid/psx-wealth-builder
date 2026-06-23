@@ -12,6 +12,6 @@ export { generatePortfolio } from './portfolio.js';
 export { filterUniverse } from './filters.js';
 export { simulateSip, planFromPortfolio, type SipOptions } from './sip.js';
 export { forecastDividends, dividendPlanFromPortfolio, type DividendOptions } from './dividend.js';
-export { projectWealth, annualizedIrr, SCENARIO_FACTORS, type WealthOptions } from './wealth.js';
+export { projectWealth, annualizedIrr, SCENARIO_OFFSETS, type WealthOptions } from './wealth.js';
 export { scorePortfolioHealth } from './health.js';
 export { generateRebalance, type RebalanceOptions } from './rebalance.js';

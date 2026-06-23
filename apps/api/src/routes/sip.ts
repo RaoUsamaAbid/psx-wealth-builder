@@ -6,8 +6,8 @@ import { parsePortfolioRequest } from './parse.js';
 
 type ReposResolver = () => Promise<Repositories>;
 
-// Keep modelled price paths sane regardless of seed noise.
-const RETURN_FLOOR = -0.1;
+// Long-term price-path assumption: EPS growth floored at 0 (no perpetual decline).
+const RETURN_FLOOR = 0;
 const RETURN_CAP = 0.3;
 const clampReturn = (r: number): number => Math.max(RETURN_FLOOR, Math.min(RETURN_CAP, r));
 

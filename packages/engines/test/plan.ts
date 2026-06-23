@@ -1,5 +1,5 @@
 import type { CompanyData, DividendPlanPosition, Portfolio } from '@psx/shared';
-import { dividendPlanFromPortfolio, dividendCagr } from '@psx/engines';
+import { dividendPlanFromPortfolio } from '@psx/engines';
 
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 
@@ -13,9 +13,8 @@ export function buildPlan(universe: CompanyData[], portfolio: Portfolio): Divide
         ? d.dividends.reduce((a, b) => (b.year > a.year ? b : a)).amountPerShare
         : 0;
     return {
-      expectedAnnualReturn: clamp(d?.fundamentals?.epsGrowth ?? 0, -0.1, 0.3),
+      expectedAnnualReturn: clamp(d?.fundamentals?.epsGrowth ?? 0, 0, 0.3),
       startDps: latestDps,
-      dividendGrowth: clamp(d ? dividendCagr(d.dividends) : 0, 0, 0.25),
     };
   });
 }
