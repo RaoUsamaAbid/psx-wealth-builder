@@ -8,6 +8,7 @@ on:
 
 jobs:
   build:
+    name: Build & test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -36,3 +37,16 @@ jobs:
         # Unit (engines, market-data, web) + integration (api via in-memory
         # MongoDB) + stress. Packages are already built above.
         run: npx vitest run
+
+  deploy:
+    name: Deploy (Render)
+    needs: build # only deploys if build + every test suite passed
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger API deploy
+        if: ${{ secrets.RENDER_DEPLOY_HOOK_API != '' }}
+        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_API }}"
+      - name: Trigger web deploy
+        if: ${{ secrets.RENDER_DEPLOY_HOOK_WEB != '' }}
+        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_WEB }}"

@@ -22,6 +22,9 @@ import {
 } from './account/repos.js';
 import { authRouter } from './routes/auth.js';
 import { accountRouter } from './routes/account.js';
+import { pinoHttp } from 'pino-http';
+import { logger } from './logger.js';
+import { apiLimiter, authLimiter } from './middleware/rate-limit.js';
 
 export interface AppContext {
   app: Express;
@@ -38,9 +41,13 @@ export interface AppContext {
  */
 export function createApp(): AppContext {
   const app = express();
+  // Behind a PaaS proxy in prod so rate-limit / client IPs work correctly.
+  if (config.isProd) app.set('trust proxy', 1);
+  app.use(pinoHttp({ logger, autoLogging: { ignore: (req) => req.url === '/health' } }));
   app.use(helmet());
   app.use(cors({ origin: config.corsOrigin }));
-  app.use(express.json());
+  app.use(express.json({ limit: '256kb' }));
+  app.use(apiLimiter);
 
   let reposCache: Repositories | null = null;
   const getRepos = async (): Promise<Repositories> => {
@@ -77,7 +84,7 @@ export function createApp(): AppContext {
   );
   app.use('/market', marketRouter(quoteService, getRepos));
 
-  app.use('/auth', authRouter(getAccount));
+  app.use('/auth', authLimiter, authRouter(getAccount));
   app.use('/me', accountRouter(getAccount, getRepos));
 
   app.get('/health', async (_req, res) => {
@@ -101,8 +108,7 @@ export function createApp(): AppContext {
   });
 
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
-    const message = err instanceof Error ? err.message : 'internal error';
-    console.error('[api] error:', message);
+    logger.error({ err }, 'unhandled request error');
     res.status(500).json({ error: 'internal server error' });
   });
 

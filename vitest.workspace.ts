@@ -25,6 +25,9 @@ export default defineWorkspace([
       include: ['test/**/*.test.ts'],
       testTimeout: 60000,
       hookTimeout: 120000,
+      // Run the API test files serially so they don't race to extract the
+      // in-memory mongod binary on a cold CI machine.
+      fileParallelism: false,
     },
   },
   {

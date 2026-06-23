@@ -1,0 +1,38 @@
+# Render blueprint — https://render.com/docs/blueprint-spec
+# Deploys the API (Node/Docker) and the web (nginx/Docker, proxies /api → API).
+# After the first deploy, set the dashboard-managed values (marked sync: false):
+#   psx-api  → MONGODB_URI, CORS_ORIGIN (the web URL, e.g. https://psx-web.onrender.com)
+#   psx-web  → API_UPSTREAM (the API URL, e.g. https://psx-api.onrender.com)
+services:
+  - type: web
+    name: psx-api
+    runtime: docker
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: .
+    plan: starter
+    healthCheckPath: /health
+    autoDeploy: false # CI triggers deploys after tests pass (deploy hook)
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DB
+        value: psx_wealth_builder
+      - key: CORS_ORIGIN
+        sync: false
+
+  - type: web
+    name: psx-web
+    runtime: docker
+    dockerfilePath: ./apps/web/Dockerfile
+    dockerContext: .
+    plan: starter
+    autoDeploy: false
+    envVars:
+      - key: API_UPSTREAM
+        sync: false

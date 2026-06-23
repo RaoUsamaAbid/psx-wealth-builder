@@ -5,6 +5,7 @@ import { asyncHandler } from '../async-handler.js';
 import { requireAuth } from '../auth/jwt.js';
 import { runMarketSync, getSyncStatus } from '../market/sync.js';
 import { runDeepSync, getDeepSyncStatus, isDeepSyncRunning } from '../market/deep-sync.js';
+import { syncLimiter } from '../middleware/rate-limit.js';
 
 type ReposResolver = () => Promise<Repositories>;
 
@@ -43,6 +44,7 @@ export function marketRouter(quotes: QuoteService, getRepos: ReposResolver): Rou
   // Any signed-in user can trigger it.
   router.post(
     '/sync',
+    syncLimiter,
     requireAuth,
     asyncHandler(async (_req, res) => {
       const status = await runMarketSync(await getRepos());
@@ -54,6 +56,7 @@ export function marketRouter(quotes: QuoteService, getRepos: ReposResolver): Rou
   // POST /market/sync/deep — start the background deep sync (real fundamentals).
   router.post(
     '/sync/deep',
+    syncLimiter,
     requireAuth,
     asyncHandler(async (_req, res) => {
       if (isDeepSyncRunning()) {

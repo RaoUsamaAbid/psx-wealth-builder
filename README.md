@@ -16,10 +16,10 @@ It answers questions like:
 ## Tech stack
 
 - **Web:** React, TypeScript, Vite, TailwindCSS, React Query, Zustand, Recharts
-- **API:** Node.js, Express, TypeScript
+- **API:** Node.js, Express, TypeScript, pino logging
 - **DB:** MongoDB Atlas
-- **Realtime/Jobs:** Socket.io, BullMQ + Redis
-- **Infra:** Docker, GitHub Actions
+- **Realtime:** Socket.io
+- **Infra:** Docker, GitHub Actions CI, Vitest, deploys to Render/Railway
 
 ## Monorepo
 
@@ -58,19 +58,19 @@ npm run dev    # api :4000 + web :5173
 npm install
 
 # 2. configure env
-cp .env.example .env        # fill in MongoDB Atlas URI, etc.
+cp .env.example .env        # fill in MongoDB Atlas URI + JWT_SECRET
 
-# 3. start Redis (for jobs)
-docker compose up -d redis
-
-# 4. seed the database (companies, quotes, fundamentals, dividends)
+# 3. seed a starter universe (or skip and use the in-app "Sync market data")
 npm run seed
 
-# 5. run dev (api + web)
+# 4. run dev (api + web)
 npm run dev
 # api  → http://localhost:4000  (GET /health)
 # web  → http://localhost:5173
 ```
+
+Then sign in and hit **Sync market data** (Market page) to pull the live
+KMI universe + prices, and **Deep sync** for real fundamentals.
 
 ## API endpoints
 
@@ -174,15 +174,19 @@ for all calculations.
 - **Quotes** — real current prices/change, read from each row's machine-readable
   `data-order` attribute (mapped by header `data-name`, so a column re-order or
   icon/`%` in the text can't corrupt values).
-- **Fundamentals/dividends** — the market-watch page carries none, so these are
-  regenerated deterministically from the **real price** (clearly an estimate)
-  until a deep per-company sync is added.
+- **Fundamentals/dividends** — the market-watch page carries none, so the quick
+  sync seeds them from the **real price** (an estimate).
 
-**`GET /market/sync/status`** returns the last sync time + counts. The Market
-page shows a **"Sync market data"** button and the live board (quotes are read
-from the DB and pushed over socket.io after a sync). Everything is resilient: a
-fetch/parse failure aborts the sync without touching the existing data, and a
-captured-page fixture test fails CI loudly if PSX changes its DOM.
+**Deep sync** (`POST /market/sync/deep`, background) then scrapes each company
+page to **upsert real fundamentals** — sector name, market cap, P/E, EPS, EPS
+growth and revenue growth — in place, never pruning. Progress is reported via
+`GET /market/sync/status` and a progress bar on the Market page.
+
+The Market page shows **"Sync market data"** + **"Deep sync"** buttons; the live
+board reads quotes from the DB (pushed over socket.io). Everything is resilient:
+a fetch/parse failure aborts without touching existing data, and captured-page
+fixture tests fail CI loudly if PSX changes its DOM. Endpoints are rate-limited
+(stricter on auth + sync).
 
 ### Accounts & auth
 
@@ -208,11 +212,18 @@ All `/me/*` routes require a valid token; data is scoped per user.
 | `npm run lint`                        | ESLint across the repo             |
 | `npm run format`                      | Prettier write                     |
 | `npm run typecheck`                   | TS typecheck all workspaces        |
+| `npm test`                            | unit + integration + stress tests  |
 
-## Docker
+## Production & deployment
+
+Structured logging (pino), rate limiting (global + stricter auth/sync),
+helmet + trust-proxy, fail-fast config validation, and graceful shutdown.
+Deploys as two Docker services (API + nginx web) to **Render/Railway** with
+MongoDB Atlas — see [`docs/DEPLOY.md`](docs/DEPLOY.md). CI runs every test suite
+and only triggers a deploy when green.
 
 ```bash
-docker compose --profile full up --build   # redis + api + web
+docker compose --profile full up --build   # local full stack: api + web
 ```
 
 ## Roadmap

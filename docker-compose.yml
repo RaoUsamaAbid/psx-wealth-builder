@@ -1,18 +1,6 @@
+# Local full-stack run: docker compose --profile full up --build
+# (Day-to-day dev uses `npm run dev`; MongoDB is Atlas via .env.)
 services:
-  redis:
-    image: redis:7-alpine
-    container_name: psx-redis
-    ports:
-      - '6379:6379'
-    volumes:
-      - ./.data/redis:/data
-    command: ['redis-server', '--appendonly', 'yes']
-    healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   api:
     build:
       context: .
@@ -20,13 +8,8 @@ services:
     container_name: psx-api
     env_file:
       - .env
-    environment:
-      REDIS_URL: redis://redis:6379
     ports:
       - '4000:4000'
-    depends_on:
-      redis:
-        condition: service_healthy
     profiles: ['full']
 
   web:
@@ -34,6 +17,8 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
     container_name: psx-web
+    environment:
+      API_UPSTREAM: http://api:4000
     ports:
       - '5173:80'
     depends_on:

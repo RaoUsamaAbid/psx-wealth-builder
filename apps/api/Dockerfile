@@ -1,10 +1,8 @@
-# Build context = repo root (see docker-compose.yml)
+# Build context = repo root. node_modules/dist/.env are excluded via .dockerignore.
 FROM node:20-alpine AS build
 WORKDIR /app
-COPY package.json package-lock.json* tsconfig.base.json ./
-COPY packages ./packages
-COPY apps/api ./apps/api
-RUN npm install
+COPY . .
+RUN npm ci || npm install
 RUN npm run build:packages && npm run build -w @psx/api
 
 FROM node:20-alpine AS runtime
@@ -15,5 +13,6 @@ COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/packages ./packages
 COPY --from=build /app/apps/api/package.json ./apps/api/package.json
 COPY --from=build /app/apps/api/dist ./apps/api/dist
+USER node
 EXPOSE 4000
 CMD ["node", "apps/api/dist/index.js"]

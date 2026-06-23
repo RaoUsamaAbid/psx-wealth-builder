@@ -1,26 +1,32 @@
-import { APP_NAME } from '@psx/shared';
-import { config } from './config.js';
+import { config, validateConfig } from './config.js';
+import { logger } from './logger.js';
 import { closeDb } from './db.js';
 import { createApp } from './app.js';
 import { startRealtime, type RealtimeHandle } from './market/realtime.js';
 
+validateConfig(); // fail fast on missing/insecure production config
+
 const { app, quoteService, providerName } = createApp();
 
 const server = app.listen(config.port, config.host, () => {
-  console.log(`[${APP_NAME}] API listening on http://${config.host}:${config.port}`);
+  logger.info({ host: config.host, port: config.port, env: config.env }, 'API listening');
 });
 
-// Start the realtime quote loop (socket.io push + periodic refresh).
+// Start the realtime quote loop (socket.io push + periodic DB read).
 const realtime: RealtimeHandle = startRealtime(server, quoteService, {
   intervalMs: config.marketRefreshMs,
   corsOrigin: config.corsOrigin,
 });
-console.log(
-  `[${APP_NAME}] realtime market data: provider=${providerName} refresh=${config.marketRefreshMs}ms`
+logger.info(
+  { provider: providerName, refreshMs: config.marketRefreshMs },
+  'realtime board started'
 );
 
+let shuttingDown = false;
 async function shutdown(signal: string): Promise<void> {
-  console.log(`\n${signal} received, shutting down...`);
+  if (shuttingDown) return;
+  shuttingDown = true;
+  logger.info({ signal }, 'shutting down');
   await realtime.stop();
   server.close();
   await closeDb();
@@ -29,3 +35,10 @@ async function shutdown(signal: string): Promise<void> {
 
 process.on('SIGINT', () => void shutdown('SIGINT'));
 process.on('SIGTERM', () => void shutdown('SIGTERM'));
+process.on('uncaughtException', (err) => {
+  logger.fatal({ err }, 'uncaught exception');
+  void shutdown('uncaughtException');
+});
+process.on('unhandledRejection', (reason) => {
+  logger.error({ reason }, 'unhandled rejection');
+});
