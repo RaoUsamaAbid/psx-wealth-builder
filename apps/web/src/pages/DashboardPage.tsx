@@ -1,5 +1,13 @@
 import { useState } from 'react';
-import { PieChart, HeartPulse, CalendarClock, Coins, TrendingUp, Wand2 } from 'lucide-react';
+import {
+  PieChart,
+  HeartPulse,
+  CalendarClock,
+  Coins,
+  TrendingUp,
+  Wand2,
+  ShoppingCart,
+} from 'lucide-react';
 import { usePlanner } from '../store/planner';
 import { PlannerForm } from '../features/planner/PlannerForm';
 import { AllocationPanel } from '../features/planner/AllocationPanel';
@@ -7,11 +15,13 @@ import { HealthPanel } from '../features/planner/HealthPanel';
 import { SipPanel } from '../features/planner/SipPanel';
 import { DividendPanel } from '../features/planner/DividendPanel';
 import { ProjectionPanel } from '../features/planner/ProjectionPanel';
+import { RecommendationPanel } from '../features/planner/RecommendationPanel';
 import { Tabs, type TabDef } from '../components/ui/Tabs';
 import { EmptyState } from '../components/ui/misc';
 
 const tabs: TabDef[] = [
   { id: 'allocation', label: 'Allocation', icon: <PieChart className="h-4 w-4" /> },
+  { id: 'buy-plan', label: 'Buy plan', icon: <ShoppingCart className="h-4 w-4" /> },
   { id: 'health', label: 'Health', icon: <HeartPulse className="h-4 w-4" /> },
   { id: 'sip', label: 'SIP', icon: <CalendarClock className="h-4 w-4" /> },
   { id: 'dividends', label: 'Dividends', icon: <Coins className="h-4 w-4" /> },
@@ -45,6 +55,7 @@ export function DashboardPage() {
             <>
               <Tabs tabs={tabs} active={tab} onChange={setTab} />
               {tab === 'allocation' && <AllocationPanel request={request} />}
+              {tab === 'buy-plan' && <RecommendationPanel request={request} />}
               {tab === 'health' && <HealthPanel request={request} />}
               {tab === 'sip' && <SipPanel request={request} />}
               {tab === 'dividends' && <DividendPanel request={request} />}

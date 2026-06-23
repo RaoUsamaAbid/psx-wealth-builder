@@ -7,6 +7,7 @@ import { CompaniesPage } from './pages/CompaniesPage';
 import { MarketPage } from './pages/MarketPage';
 import { RebalancePage } from './pages/RebalancePage';
 import { AccountPage } from './pages/AccountPage';
+import { SipsPage } from './pages/SipsPage';
 
 function App() {
   const token = useAuth((s) => s.token);
@@ -19,6 +20,7 @@ function App() {
         <Route path="companies" element={<CompaniesPage />} />
         <Route path="market" element={<MarketPage />} />
         <Route path="rebalance" element={<RebalancePage />} />
+        <Route path="sips" element={<SipsPage />} />
         <Route path="account" element={<AccountPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

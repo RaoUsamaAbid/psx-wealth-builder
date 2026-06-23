@@ -22,6 +22,8 @@ import {
 } from './account/repos.js';
 import { authRouter } from './routes/auth.js';
 import { accountRouter } from './routes/account.js';
+import { recommendationsRouter } from './routes/recommendations.js';
+import { personalSipsRouter } from './routes/personal-sips.js';
 import { pinoHttp } from 'pino-http';
 import { logger } from './logger.js';
 import { apiLimiter, authLimiter } from './middleware/rate-limit.js';
@@ -86,6 +88,8 @@ export function createApp(): AppContext {
 
   app.use('/auth', authLimiter, authRouter(getAccount));
   app.use('/me', accountRouter(getAccount, getRepos));
+  app.use('/me/sips', personalSipsRouter(getAccount, getRepos));
+  app.use('/recommendations', recommendationsRouter(getAccount, getRepos));
 
   app.get('/health', async (_req, res) => {
     const dbOk = await pingDb();

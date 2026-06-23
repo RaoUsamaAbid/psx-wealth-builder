@@ -4,6 +4,7 @@ import type {
   DividendForecast,
   Fundamentals,
   HealthScore,
+  MonthlyRecommendation,
   Portfolio,
   PortfolioRequest,
   Quote,
@@ -57,6 +58,7 @@ export interface HealthResponse {
   health: HealthScore;
 }
 export type RebalanceResponse = RebalanceResult;
+export type RecommendationResponse = MonthlyRecommendation;
 
 export interface SyncStatus {
   lastSyncedAt: string;
@@ -99,4 +101,43 @@ export interface HistoryItem {
   date: string;
   note?: string;
   createdAt: string;
+}
+
+export type SipPlanStatus = 'active' | 'paused' | 'completed';
+
+export interface PersonalSipPlan {
+  id: string;
+  name: string;
+  request: PortfolioRequest;
+  carriedCash: number;
+  estimatedFeeRate: number;
+  maxOrders: number;
+  nextInvestmentDate: string | null;
+  lastInvestedAt: string | null;
+  status: SipPlanStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SipHolding {
+  symbol: string;
+  shares: number;
+}
+
+export interface SipTransaction {
+  id: string;
+  type: 'buy' | 'sell' | 'dividend' | 'fee';
+  symbol?: string;
+  shares?: number;
+  price?: number;
+  amount: number;
+  fees: number;
+  date: string;
+  note?: string;
+}
+
+export interface PersonalSipDetail {
+  plan: PersonalSipPlan;
+  holdings: SipHolding[];
+  transactions: SipTransaction[];
 }

@@ -203,8 +203,135 @@ describe('auth & account', () => {
     expect(list.body.history).toHaveLength(1);
   });
 
+  it('generates exact monthly buy orders from account history', async () => {
+    const res = await request(app)
+      .post('/recommendations/monthly')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        ...validBody,
+        monthlyInvestmentAmount: 10_000,
+        durationYears: 5,
+        index: 'KMI30',
+        holdingsCount: 5,
+        carriedCash: 500,
+        availableDividends: 250,
+        estimatedFeeRate: 0.0025,
+        maxOrders: 3,
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.availableCash).toBe(10_750);
+    expect(res.body.orders.length).toBeGreaterThan(0);
+    expect(res.body.orders.length).toBeLessThanOrEqual(3);
+    expect(res.body.estimatedTotal).toBeLessThanOrEqual(res.body.availableCash);
+    expect(res.body.currentPortfolioValue).toBeGreaterThan(0);
+  });
+
+  it('creates a persistent SIP, recommends orders, and confirms the cycle', async () => {
+    const create = await request(app)
+      .post('/me/sips')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Five year KMI plan',
+        request: {
+          ...validBody,
+          monthlyInvestmentAmount: 10_000,
+          durationYears: 5,
+          index: 'KMI30',
+          holdingsCount: 5,
+        },
+        estimatedFeeRate: 0.0025,
+        maxOrders: 3,
+      });
+    expect(create.status).toBe(201);
+    const id = create.body.plan.id;
+
+    const recommendation = await request(app)
+      .post(`/me/sips/${id}/recommendation`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ availableDividends: 500 });
+    expect(recommendation.status).toBe(200);
+    expect(recommendation.body.availableCash).toBe(10_500);
+    expect(recommendation.body.orders.length).toBeGreaterThan(0);
+
+    const confirm = await request(app)
+      .post(`/me/sips/${id}/confirm`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ availableDividends: 500 });
+    expect(confirm.status).toBe(201);
+    expect(confirm.body.confirmedOrders.length).toBeGreaterThan(0);
+    expect(confirm.body.plan.carriedCash).toBeGreaterThanOrEqual(0);
+    expect(confirm.body.plan.lastInvestedAt).toBeTruthy();
+
+    const detail = await request(app).get(`/me/sips/${id}`).set('Authorization', `Bearer ${token}`);
+    expect(detail.status).toBe(200);
+    expect(detail.body.holdings.length).toBeGreaterThan(0);
+    expect(detail.body.transactions.length).toBe(confirm.body.confirmedOrders.length);
+  });
+
+  it('allows only one confirmation when the same SIP cycle is submitted concurrently', async () => {
+    const create = await request(app)
+      .post('/me/sips')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Concurrent confirmation plan',
+        request: {
+          ...validBody,
+          monthlyInvestmentAmount: 15_000,
+          durationYears: 5,
+          index: 'KMI30',
+          holdingsCount: 5,
+        },
+        estimatedFeeRate: 0.0025,
+        maxOrders: 4,
+      });
+    const id = create.body.plan.id;
+    const attempts = await Promise.all(
+      Array.from({ length: 10 }, () =>
+        request(app)
+          .post(`/me/sips/${id}/confirm`)
+          .set('Authorization', `Bearer ${token}`)
+          .send({ availableDividends: 0 })
+      )
+    );
+    expect(attempts.filter((result) => result.status === 201)).toHaveLength(1);
+    expect(attempts.filter((result) => result.status === 409)).toHaveLength(9);
+
+    const detail = await request(app).get(`/me/sips/${id}`).set('Authorization', `Bearer ${token}`);
+    const winning = attempts.find((result) => result.status === 201)!;
+    expect(detail.body.transactions).toHaveLength(winning.body.confirmedOrders.length);
+  });
+
+  it('handles concurrent recommendation reads for a persistent SIP', async () => {
+    const create = await request(app)
+      .post('/me/sips')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Recommendation load plan',
+        request: {
+          ...validBody,
+          monthlyInvestmentAmount: 10_000,
+          durationYears: 5,
+          index: 'KMI30',
+          holdingsCount: 5,
+        },
+      });
+    const id = create.body.plan.id;
+    const results = await Promise.all(
+      Array.from({ length: 40 }, () =>
+        request(app)
+          .post(`/me/sips/${id}/recommendation`)
+          .set('Authorization', `Bearer ${token}`)
+          .send({ availableDividends: 250 })
+      )
+    );
+    expect(results.every((result) => result.status === 200)).toBe(true);
+    expect(results.every((result) => result.body.estimatedTotal <= 10_250)).toBe(true);
+  });
+
   it('blocks unauthenticated access to /me/*', async () => {
     expect((await request(app).get('/me/portfolios')).status).toBe(401);
+    expect((await request(app).get('/me/sips')).status).toBe(401);
+    expect((await request(app).post('/recommendations/monthly').send(validBody)).status).toBe(401);
   });
 });
 
@@ -235,6 +362,10 @@ describe('stress / concurrency', () => {
       ...Array.from({ length: 20 }, () => request(app).get('/market/status')),
     ];
     const results = await Promise.all(ops);
-    expect(results.every((r) => r.status === 200)).toBe(true);
+    const statusCounts = results.reduce<Record<number, number>>((counts, result) => {
+      counts[result.status] = (counts[result.status] ?? 0) + 1;
+      return counts;
+    }, {});
+    expect(statusCounts).toEqual({ 200: 60 });
   });
 });

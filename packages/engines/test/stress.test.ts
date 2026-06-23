@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import type { PortfolioRequest, RiskLevel, Strategy } from '@psx/shared';
-import { generatePortfolio, projectWealth, scorePortfolioHealth } from '@psx/engines';
+import {
+  generatePortfolio,
+  projectWealth,
+  recommendMonthlyBuys,
+  scorePortfolioHealth,
+} from '@psx/engines';
 import { buildPlan } from './plan';
 import { makeUniverse } from './helpers';
 
@@ -70,5 +75,37 @@ describe('engine stress', () => {
       expect(health.score).toBeGreaterThanOrEqual(0);
       expect(health.score).toBeLessThanOrEqual(100);
     }
+  });
+
+  it('creates 3000 exact-share recommendations without overspending', () => {
+    const start = Date.now();
+    for (let i = 0; i < 3000; i++) {
+      const req: PortfolioRequest = {
+        monthlyInvestmentAmount: 1000 + (i % 80) * 1000,
+        durationYears: 5 + (i % 20),
+        strategy: STRATS[i % 3]!,
+        riskLevel: RISKS[(i + 1) % 3]!,
+        holdingsCount: 3 + (i % 8),
+        maxPerSector: 1 + (i % 3),
+      };
+      const current = universe.slice(0, i % 6).map((data, index) => ({
+        symbol: data.company.symbol,
+        shares: 1 + ((i + index) % 100),
+      }));
+      const result = recommendMonthlyBuys(universe, req, current, {
+        carriedCash: i % 1000,
+        availableDividends: i % 500,
+        estimatedFeeRate: 0.0025,
+        maxOrders: 1 + (i % 6),
+        now: new Date('2026-01-01T12:00:00.000Z'),
+      });
+      expect(result.estimatedTotal).toBeLessThanOrEqual(result.availableCash + 0.01);
+      expect(result.remainingCash).toBeGreaterThanOrEqual(0);
+      for (const order of result.orders) {
+        expect(Number.isInteger(order.shares)).toBe(true);
+        expect(order.shares).toBeGreaterThan(0);
+      }
+    }
+    expect(Date.now() - start).toBeLessThan(10_000);
   });
 });

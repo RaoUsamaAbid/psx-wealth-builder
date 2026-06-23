@@ -309,4 +309,52 @@ export interface RebalanceResult {
   summary: Record<RebalanceActionType, number>;
 }
 
+// ----- Exact monthly buy recommendations -----
+
+export interface LedgerHolding {
+  symbol: string;
+  shares: number;
+}
+
+export type RecommendationConfidence = 'low' | 'medium' | 'high';
+
+export interface MonthlyBuyOrder {
+  symbol: string;
+  companyName: string;
+  sector: string;
+  shares: number;
+  referencePrice: number;
+  grossCost: number;
+  estimatedFees: number;
+  estimatedTotal: number;
+  score: number;
+  confidence: RecommendationConfidence;
+  currentShares: number;
+  currentValue: number;
+  targetWeight: number;
+  targetValue: number;
+  valueDeficitBefore: number;
+  reasons: string[];
+}
+
+export interface MonthlyRecommendation {
+  request: PortfolioRequest;
+  asOf: string;
+  expiresAt: string;
+  monthlyContribution: number;
+  carriedCash: number;
+  availableDividends: number;
+  availableCash: number;
+  currentPortfolioValue: number;
+  projectedPortfolioValue: number;
+  estimatedFeeRate: number;
+  orders: MonthlyBuyOrder[];
+  grossOrderValue: number;
+  estimatedFees: number;
+  estimatedTotal: number;
+  remainingCash: number;
+  dataConfidence: RecommendationConfidence;
+  warnings: string[];
+}
+
 export const APP_NAME = 'PSX Wealth Builder';

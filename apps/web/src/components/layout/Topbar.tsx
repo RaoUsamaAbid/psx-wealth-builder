@@ -7,6 +7,7 @@ import { cn } from '../../lib/cn';
 
 const mobileNav = [
   { to: '/', label: 'Planner', end: true },
+  { to: '/sips', label: 'My SIPs' },
   { to: '/companies', label: 'Companies' },
   { to: '/market', label: 'Market' },
   { to: '/rebalance', label: 'Rebalance' },

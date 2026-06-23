@@ -5,6 +5,7 @@ import type {
   DividendsResponse,
   HealthResponse,
   ProjectionResponse,
+  RecommendationResponse,
   SipResponse,
 } from '../lib/types';
 
@@ -50,6 +51,29 @@ export function useProjection(req: PortfolioRequest, enabled: boolean, targetVal
       api<ProjectionResponse>('/projection', {
         method: 'POST',
         body: { ...req, targetValue: targetValue && targetValue > 0 ? targetValue : undefined },
+      }),
+  });
+}
+
+export interface RecommendationInputs {
+  carriedCash: number;
+  availableDividends: number;
+  estimatedFeeRate: number;
+  maxOrders: number;
+}
+
+export function useRecommendation(
+  req: PortfolioRequest,
+  enabled: boolean,
+  inputs: RecommendationInputs
+) {
+  return useQuery({
+    queryKey: key('recommendation', req, inputs),
+    enabled,
+    queryFn: () =>
+      api<RecommendationResponse>('/recommendations/monthly', {
+        method: 'POST',
+        body: { ...req, ...inputs },
       }),
   });
 }

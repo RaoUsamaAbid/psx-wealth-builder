@@ -15,3 +15,4 @@ export { forecastDividends, dividendPlanFromPortfolio, type DividendOptions } fr
 export { projectWealth, annualizedIrr, SCENARIO_OFFSETS, type WealthOptions } from './wealth.js';
 export { scorePortfolioHealth } from './health.js';
 export { generateRebalance, type RebalanceOptions } from './rebalance.js';
+export { recommendMonthlyBuys, type MonthlyRecommendationOptions } from './recommendation.js';

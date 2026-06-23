@@ -1,9 +1,18 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Building2, Activity, Scale, Wallet, TrendingUp } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Building2,
+  Activity,
+  Scale,
+  Wallet,
+  TrendingUp,
+  CalendarClock,
+} from 'lucide-react';
 import { cn } from '../../lib/cn';
 
 const nav = [
   { to: '/', label: 'Planner', icon: LayoutDashboard, end: true },
+  { to: '/sips', label: 'My SIPs', icon: CalendarClock },
   { to: '/companies', label: 'Companies', icon: Building2 },
   { to: '/market', label: 'Market', icon: Activity },
   { to: '/rebalance', label: 'Rebalance', icon: Scale },

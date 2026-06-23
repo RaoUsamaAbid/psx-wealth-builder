@@ -46,7 +46,12 @@ Zustand, Recharts, socket.io-client, react-router.
 
 - **Planner** — inputs → tabs: Allocation (donut + holdings), Health (radar +
   score ring), SIP (growth area chart), Dividends (reinvest toggle), Projection
-  (3 scenarios + goal solver). Save plans to your account.
+  (3 scenarios + goal solver), and Buy plan (exact whole-share monthly orders
+  based on logged holdings, carried cash, dividends and estimated trading costs).
+  Save plans to your account.
+- **My SIPs** — persistent recurring plans with their own strategy, transaction
+  ledger, carried cash and monthly schedule. Generate an exact buy plan, confirm
+  the purchases, then reload next month with holdings and cash already applied.
 - **Companies** — searchable/filterable table + detail drawer (fundamentals,
   dividend history, quote).
 - **Market** — live quote board + ticker over socket.io with freshness status.
@@ -91,6 +96,7 @@ KMI universe + prices, and **Deep sync** for real fundamentals.
 | POST   | `/projection`                                           | wealth projection: 3 scenarios + CAGR + target    |
 | POST   | `/portfolio-health`                                     | portfolio + 0–100 health score with breakdown     |
 | POST   | `/rebalance`                                            | hold/increase/reduce/replace actions vs target    |
+| POST   | `/recommendations/monthly`                              | authenticated exact-share monthly model buy plan  |
 | GET    | `/market/status`                                        | provider, status, last-updated                    |
 | GET    | `/market/quotes` · `/market/quotes/:symbol`             | last-synced quotes                                |
 | POST   | `/market/sync`                                          | scrape PSX → refresh DB universe (auth)           |
@@ -98,6 +104,8 @@ KMI universe + prices, and **Deep sync** for real fundamentals.
 | POST   | `/auth/register` · `/auth/login`                        | create account / log in → JWT                     |
 | GET    | `/auth/me`                                              | current user (Bearer token)                       |
 | —      | `/me/portfolios` · `/me/watchlist` · `/me/history`      | saved data (auth required, CRUD)                  |
+| —      | `/me/sips` · `/me/sips/:id/recommendation`              | persistent SIPs and monthly recommendations       |
+| POST   | `/me/sips/:id/confirm`                                  | save recommended buys and roll cash forward       |
 
 `POST /portfolio` body:
 
@@ -162,6 +170,15 @@ actions — **hold / increase / reduce / replace** — detecting overweight
 positions, sector concentration, dividend deterioration, and better
 opportunities (high-scoring names not yet held), each with reasons and a
 suggested replacement where relevant.
+
+`POST /recommendations/monthly` is authenticated and takes the portfolio request
+plus optional `carriedCash`, `availableDividends`, `estimatedFeeRate` (fraction),
+and `maxOrders` (1–10). It derives current shares from the user's investment
+history, values them using the latest synced quotes, calculates each target
+position's value deficit, and returns exact whole-share orders without
+overspending. The response includes estimated costs, remaining cash, confidence,
+expiry, reasons and data-quality warnings. It is a model buy plan, not trade
+execution or a return guarantee.
 
 ### Market data: scrape-on-sync
 
