@@ -61,6 +61,7 @@ npm run dev
 | GET    | `/companies?index=KMI30&sector=Cement&shariahOnly=true` | filtered company list (market-cap sorted)         |
 | GET    | `/companies/:symbol`                                    | company + fundamentals + dividend history + quote |
 | POST   | `/portfolio`                                            | generate a portfolio from inputs (see below)      |
+| POST   | `/sip`                                                  | simulate monthly investing over time              |
 
 `POST /portfolio` body:
 
@@ -78,6 +79,13 @@ npm run dev
 
 Returns scored holdings with allocation %, whole-share purchase plan, amount
 invested this month, and leftover cash.
+
+`POST /sip` takes the same body, plus optional `months` (default
+`durationYears * 12`), `expectedAnnualReturn` (flat override; default = each
+holding's EPS growth), and `includeTimeline` (default `true`). It simulates
+monthly contributions — whole-share accumulation with carried leftover cash —
+and returns per-position shares/average-cost/market-value plus a month-by-month
+timeline and total gain.
 
 ## Scripts
 

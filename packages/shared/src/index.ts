@@ -111,4 +111,50 @@ export interface Portfolio {
   generatedAt: string; // ISO timestamp
 }
 
+// ----- SIP (monthly investing) engine -----
+
+/** One position in a SIP plan: how much to buy and its starting price. */
+export interface SipPlanPosition {
+  symbol: string;
+  companyName: string;
+  sector: string;
+  allocationPercent: number; // 0..100 of each monthly contribution
+  startPrice: number; // PKR per share at month 0
+  expectedAnnualReturn: number; // fraction; drives monthly price path
+}
+
+/** Final state of one position after the simulation. */
+export interface SipPositionResult {
+  symbol: string;
+  companyName: string;
+  sector: string;
+  shares: number;
+  invested: number; // cost basis (PKR actually deployed)
+  averageCost: number; // invested / shares
+  endPrice: number; // PKR per share at the final month
+  marketValue: number; // shares * endPrice
+  gainPercent: number; // (marketValue - invested) / invested * 100
+}
+
+/** A monthly snapshot of the accumulating portfolio. */
+export interface SipMonthPoint {
+  month: number; // 1-based
+  contributedToDate: number; // monthly amount * month
+  investedToDate: number; // actually deployed into shares
+  cashUninvested: number; // accumulated whole-share remainder
+  marketValue: number; // portfolio market value at this month
+}
+
+export interface SipResult {
+  months: number;
+  monthlyInvestmentAmount: number;
+  totalContributed: number;
+  totalInvested: number;
+  cashUninvested: number;
+  totalValue: number;
+  totalGainPercent: number;
+  positions: SipPositionResult[];
+  timeline: SipMonthPoint[];
+}
+
 export const APP_NAME = 'PSX Wealth Builder';
