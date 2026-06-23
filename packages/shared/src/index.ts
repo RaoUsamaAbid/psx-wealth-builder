@@ -62,6 +62,16 @@ export interface CompanyData {
   dividends: Dividend[];
 }
 
+/** Quality/eligibility filters applied to the universe before scoring. */
+export interface PortfolioFilters {
+  shariahOnly?: boolean; // keep only Shariah-compliant names
+  minDividendYield?: number; // fraction, e.g. 0.05 = 5%
+  minEpsGrowth?: number; // fraction
+  minRevenueGrowth?: number; // fraction
+  maxDebtRatio?: number; // fraction
+  maxVolatility?: number; // max beta
+}
+
 /** User inputs that drive portfolio generation. */
 export interface PortfolioRequest {
   monthlyInvestmentAmount: number; // PKR per month
@@ -71,6 +81,7 @@ export interface PortfolioRequest {
   index?: Index; // restrict universe (default: all KMI100)
   holdingsCount?: number; // target number of holdings (default 10)
   maxPerSector?: number; // diversification cap (default 2)
+  filters?: PortfolioFilters; // advanced quality filters
 }
 
 /** Per-company feature scores (0..1, higher = better) used by scoring. */

@@ -1,6 +1,7 @@
 import type { CompanyData, Portfolio, PortfolioHolding, PortfolioRequest } from '@psx/shared';
 import { scoreUniverse } from './scoring.js';
 import { selectHoldings } from './ranking.js';
+import { filterUniverse } from './filters.js';
 
 const DEFAULT_COUNT = 10;
 const DEFAULT_MAX_PER_SECTOR = 2;
@@ -19,9 +20,7 @@ export function generatePortfolio(
   request: PortfolioRequest,
   now: Date = new Date()
 ): Portfolio {
-  const candidates = request.index
-    ? universe.filter((d) => d.company.indices.includes(request.index!))
-    : universe;
+  const candidates = filterUniverse(universe, request.filters, request.index);
 
   const scored = scoreUniverse(candidates, {
     strategy: request.strategy,

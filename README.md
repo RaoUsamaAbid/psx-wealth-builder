@@ -76,11 +76,21 @@ npm run dev
   "index": "KMI30", // optional: KMI30 | KMI100 (default all)
   "holdingsCount": 10, // optional: 1–30 (default 10)
   "maxPerSector": 2, // optional: 1–10 sector cap (default 2)
+  "filters": {
+    // optional advanced filters
+    "shariahOnly": true, // keep only Shariah-compliant names
+    "minDividendYield": 0.05, // fraction
+    "minEpsGrowth": 0.1, // fraction
+    "minRevenueGrowth": 0.1, // fraction
+    "maxDebtRatio": 0.4, // fraction
+    "maxVolatility": 1.0, // max beta
+  },
 }
 ```
 
 Returns scored holdings with allocation %, whole-share purchase plan, amount
-invested this month, and leftover cash.
+invested this month, and leftover cash. Filters narrow the universe before
+scoring, so `/sip`, `/dividends`, and `/projection` honor them too.
 
 `POST /sip` takes the same body, plus optional `months` (default
 `durationYears * 12`), `expectedAnnualReturn` (flat override; default = each
