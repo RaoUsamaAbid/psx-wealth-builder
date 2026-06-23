@@ -63,6 +63,7 @@ npm run dev
 | POST   | `/portfolio`                                            | generate a portfolio from inputs (see below)      |
 | POST   | `/sip`                                                  | simulate monthly investing over time              |
 | POST   | `/dividends`                                            | forecast dividend income (reinvest ON vs OFF)     |
+| POST   | `/projection`                                           | wealth projection: 3 scenarios + CAGR + target    |
 
 `POST /portfolio` body:
 
@@ -94,6 +95,15 @@ contributing monthly, under both scenarios — **reinvest OFF** (dividends paid
 out as cash) and **reinvest ON** (DRIP: dividends buy more shares) — returning a
 per-year series, cumulative dividends, final shares/value, and the final
 monthly dividend run-rate (answers "how much passive income after N years?").
+
+`POST /projection` takes the same body, plus optional `years` (1–50),
+`reinvest` (default `true`), and `targetValue`. It projects long-term wealth
+under **conservative / base / optimistic** scenarios (each scaling expected
+returns), reporting total invested, future value, total dividends, total
+return, money-weighted CAGR (IRR), final shares, and the dividend run-rate per
+scenario. When `targetValue` is given it also solves the approximate monthly
+contribution required to reach that value (answers "what monthly to hit PKR X
+in N years?").
 
 ## Scripts
 

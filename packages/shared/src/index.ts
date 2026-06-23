@@ -204,4 +204,36 @@ export interface DividendForecast {
   positions: DividendPositionResult[];
 }
 
+// ----- Wealth projection engine -----
+
+export type ScenarioName = 'conservative' | 'base' | 'optimistic';
+
+export interface WealthScenarioResult {
+  scenario: ScenarioName;
+  returnFactor: number; // multiplier applied to expected returns
+  totalInvested: number; // total contributions
+  futureValue: number; // projected portfolio value (incl. cash)
+  totalDividends: number; // cumulative dividends over horizon
+  totalReturnPercent: number; // (futureValue - invested) / invested * 100
+  cagrPercent: number | null; // annualized money-weighted return (IRR), null if unsolved
+  finalShares: number;
+  finalAnnualDividendIncome: number; // run-rate
+  finalMonthlyDividendIncome: number; // run-rate / 12
+  perYear: DividendYearPoint[];
+}
+
+export interface WealthTargetSolve {
+  targetValue: number;
+  requiredMonthlyInvestment: number; // approximate (linear scaling, base scenario)
+  basedOn: ScenarioName;
+}
+
+export interface WealthProjection {
+  request: PortfolioRequest;
+  years: number;
+  reinvest: boolean;
+  scenarios: WealthScenarioResult[]; // conservative, base, optimistic
+  targetSolve: WealthTargetSolve | null;
+}
+
 export const APP_NAME = 'PSX Wealth Builder';
