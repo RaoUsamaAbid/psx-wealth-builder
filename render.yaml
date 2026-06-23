@@ -9,7 +9,7 @@ services:
     runtime: docker
     dockerfilePath: ./apps/api/Dockerfile
     dockerContext: .
-    plan: starter
+    plan: free # free tier — no card; sleeps after ~15 min idle (cold start on wake)
     healthCheckPath: /health
     autoDeploy: false # CI triggers deploys after tests pass (deploy hook)
     envVars:
@@ -31,7 +31,7 @@ services:
     runtime: docker
     dockerfilePath: ./apps/web/Dockerfile
     dockerContext: .
-    plan: starter
+    plan: free
     autoDeploy: false
     envVars:
       - key: API_UPSTREAM
