@@ -28,9 +28,15 @@ apps/web      frontend
 apps/api      Express API
 packages/shared        shared domain types
 packages/engines       portfolio engines
-packages/market-data   market-data provider abstraction
+packages/market-data   PSX scrapers + provider + seed
 docs/
 ```
+
+## Documentation
+
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — system design, data flow, engines, DB model
+- [docs/SCRAPING.md](docs/SCRAPING.md) — **how PSX scraping works + runbook to fix it if PSX changes their site**
+- [docs/DEPLOY.md](docs/DEPLOY.md) — Render/Railway deployment, env, CI-gated deploys, backups
 
 ## Frontend
 
