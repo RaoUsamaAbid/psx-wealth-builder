@@ -66,6 +66,8 @@ npm run dev
 | POST   | `/projection`                                           | wealth projection: 3 scenarios + CAGR + target    |
 | POST   | `/portfolio-health`                                     | portfolio + 0–100 health score with breakdown     |
 | POST   | `/rebalance`                                            | hold/increase/reduce/replace actions vs target    |
+| GET    | `/market/status`                                        | live source, realtime status, last-updated        |
+| GET    | `/market/quotes` · `/market/quotes/:symbol`             | cached live quotes                                |
 
 `POST /portfolio` body:
 
@@ -130,6 +132,25 @@ actions — **hold / increase / reduce / replace** — detecting overweight
 positions, sector concentration, dividend deterioration, and better
 opportunities (high-scoring names not yet held), each with reasons and a
 suggested replacement where relevant.
+
+### Realtime market data
+
+The API runs a quote-refresh loop (`MARKET_REFRESH_MS`, default 5s) backed by a
+pluggable `MARKET_DATA_PROVIDER`:
+
+- `realtime` — scrapes the PSX data portal, **falls back** to `simulated`
+- `capitalstake` — scrapes CapitalStake, falls back to `simulated`
+- `simulated` — random-walks seed prices (offline demo so quotes keep moving)
+- `mock` — static seed quotes
+
+Each refresh updates an in-memory cache and pushes to connected clients over
+**socket.io** (`quotes:update` / `quotes:status`). `GET /market/status` reports
+`source`, `status` (`live` / `simulated` / `stale` / `down`), and `lastUpdated`.
+
+> Scraped quotes are **display-only by default**. Persisting them to MongoDB
+> (which the engines read) is gated behind `MARKET_PERSIST=true` and should stay
+> off until the scraper's column mapping is validated against the live PSX DOM —
+> otherwise a mis-parse corrupts engine inputs.
 
 ## Scripts
 

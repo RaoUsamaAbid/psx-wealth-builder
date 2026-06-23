@@ -1,22 +1,23 @@
 /**
- * @psx/market-data — provider abstraction.
- * RULE: business logic NEVER calls a third-party API directly. Everything goes
- * through MarketDataProvider. Concrete providers are added in later phases
- * (Mock = Phase 1, CapitalStake/RealtimePsx = Phase 9, via scraping).
+ * @psx/market-data — provider abstraction + concrete providers.
+ * RULE: business logic NEVER calls a third-party API/scraper directly.
+ * Mock = seed-backed (Phase 1); Simulated = random-walk realtime (offline demo);
+ * Realtime/CapitalStake = scrapers with fallback (Phase 9).
  */
 import type { Company, Quote } from '@psx/shared';
 import { SEED_COMPANIES, SEED_QUOTES } from './seed/index.js';
+import type { MarketDataProvider } from './provider.js';
+import { SimulatedRealtimeProvider } from './providers/simulated.js';
+import { createRealtimePsxProvider, createCapitalStakeProvider } from './providers/realtime.js';
 
+export type { MarketDataProvider } from './provider.js';
 export * from './seed/index.js';
+export { SimulatedRealtimeProvider } from './providers/simulated.js';
+export { ScrapingProvider } from './providers/realtime.js';
+export { scrapePsx, parsePsxMarketWatch } from './scraping/psx.js';
+export { scrapeCapitalStake, parseCapitalStake } from './scraping/capitalstake.js';
 
-export interface MarketDataProvider {
-  readonly name: string;
-  getCompanies(): Promise<Company[]>;
-  getQuote(symbol: string): Promise<Quote | null>;
-  getQuotes(symbols: string[]): Promise<Quote[]>;
-}
-
-/** Seed-backed provider for offline/dev use (no DB, no network). */
+/** Static seed-backed provider (deterministic; for engines/offline use). */
 export class MockMarketDataProvider implements MarketDataProvider {
   readonly name = 'mock';
   private readonly quotes = new Map(SEED_QUOTES.map((q) => [q.symbol, q]));
@@ -34,14 +35,24 @@ export class MockMarketDataProvider implements MarketDataProvider {
   }
 }
 
-export type ProviderKind = 'mock' | 'capitalstake' | 'realtime';
+export type ProviderKind = 'mock' | 'simulated' | 'capitalstake' | 'realtime';
 
+/**
+ * Build a provider by kind. Realtime/CapitalStake scrape live data and fall
+ * back to the simulated provider so quotes keep moving even when the network
+ * or page layout fails.
+ */
 export function createProvider(kind: ProviderKind = 'mock'): MarketDataProvider {
   switch (kind) {
     case 'mock':
       return new MockMarketDataProvider();
+    case 'simulated':
+      return new SimulatedRealtimeProvider();
+    case 'realtime':
+      return createRealtimePsxProvider(new SimulatedRealtimeProvider());
+    case 'capitalstake':
+      return createCapitalStakeProvider(new SimulatedRealtimeProvider());
     default:
-      // CapitalStake / Realtime implemented in Phase 9.
       return new MockMarketDataProvider();
   }
 }

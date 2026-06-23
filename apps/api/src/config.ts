@@ -21,8 +21,15 @@ export const config = {
   mongoUri: process.env.MONGODB_URI ?? '',
   mongoDb: process.env.MONGODB_DB ?? 'psx_wealth_builder',
   redisUrl: process.env.REDIS_URL ?? 'redis://localhost:6379',
-  marketDataProvider: (process.env.MARKET_DATA_PROVIDER ?? 'mock') as
+  marketDataProvider: (process.env.MARKET_DATA_PROVIDER ?? 'realtime') as
     | 'mock'
+    | 'simulated'
     | 'capitalstake'
     | 'realtime',
+  marketRefreshMs: num(process.env.MARKET_REFRESH_MS, 5000),
+  quoteFreshnessMs: num(process.env.QUOTE_FRESHNESS_MS, 20000),
+  // Persist scraped live quotes to Mongo (overwriting seed quotes the engines
+  // read). OFF until the scraper's column mapping is validated against the live
+  // PSX DOM — otherwise a mis-parse corrupts engine inputs. Display is unaffected.
+  marketPersist: (process.env.MARKET_PERSIST ?? 'false') === 'true',
 } as const;

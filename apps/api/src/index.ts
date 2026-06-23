@@ -1,7 +1,7 @@
 import express, { type NextFunction, type Request, type Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import { APP_NAME } from '@psx/shared';
+import { APP_NAME, type Quote } from '@psx/shared';
 import { config } from './config.js';
 import { connectDb, pingDb, closeDb } from './db.js';
 import { makeRepositories, type Repositories } from './repositories.js';
@@ -12,6 +12,10 @@ import { dividendsRouter } from './routes/dividends.js';
 import { projectionRouter } from './routes/projection.js';
 import { healthScoreRouter } from './routes/health-score.js';
 import { rebalanceRouter } from './routes/rebalance.js';
+import { marketRouter } from './routes/market.js';
+import { createProvider } from '@psx/market-data';
+import { QuoteService } from './market/quote-service.js';
+import { startRealtime, type RealtimeHandle } from './market/realtime.js';
 
 const app = express();
 
@@ -35,6 +39,22 @@ app.use('/dividends', dividendsRouter(getRepos));
 app.use('/projection', projectionRouter(getRepos));
 app.use('/portfolio-health', healthScoreRouter(getRepos));
 app.use('/rebalance', rebalanceRouter(getRepos));
+
+// Realtime market data: provider → quote cache → socket.io push.
+const provider = createProvider(config.marketDataProvider);
+const quoteService = new QuoteService(
+  provider,
+  async () => (await (await getRepos()).companies.findAll()).map((c) => c.symbol),
+  // Persistence is gated: display-only by default so an unvalidated scrape
+  // cannot overwrite the seed quotes the engines depend on.
+  config.marketPersist
+    ? async (quotes: Quote[]) => {
+        await (await getRepos()).quotes.upsertMany(quotes);
+      }
+    : async () => {},
+  config.quoteFreshnessMs
+);
+app.use('/market', marketRouter(quoteService));
 
 app.get('/health', async (_req, res) => {
   const dbOk = await pingDb();
@@ -68,8 +88,18 @@ const server = app.listen(config.port, config.host, () => {
   console.log(`[${APP_NAME}] API listening on http://${config.host}:${config.port}`);
 });
 
+// Start the realtime quote loop (socket.io push + periodic refresh).
+const realtime: RealtimeHandle = startRealtime(server, quoteService, {
+  intervalMs: config.marketRefreshMs,
+  corsOrigin: config.corsOrigin,
+});
+console.log(
+  `[${APP_NAME}] realtime market data: provider=${provider.name} refresh=${config.marketRefreshMs}ms`
+);
+
 async function shutdown(signal: string): Promise<void> {
   console.log(`\n${signal} received, shutting down...`);
+  await realtime.stop();
   server.close();
   await closeDb();
   process.exit(0);
