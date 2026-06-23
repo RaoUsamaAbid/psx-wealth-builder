@@ -1,7 +1,7 @@
 import express, { type NextFunction, type Request, type Response, type Express } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import { APP_NAME, type Quote } from '@psx/shared';
+import { APP_NAME } from '@psx/shared';
 import { config } from './config.js';
 import { connectDb, pingDb } from './db.js';
 import { makeRepositories, type Repositories } from './repositories.js';
@@ -13,8 +13,8 @@ import { projectionRouter } from './routes/projection.js';
 import { healthScoreRouter } from './routes/health-score.js';
 import { rebalanceRouter } from './routes/rebalance.js';
 import { marketRouter } from './routes/market.js';
-import { createProvider } from '@psx/market-data';
 import { QuoteService } from './market/quote-service.js';
+import { DbQuoteProvider } from './market/db-provider.js';
 import {
   makeAccountRepositories,
   ensureAccountIndexes,
@@ -67,18 +67,16 @@ export function createApp(): AppContext {
   app.use('/portfolio-health', healthScoreRouter(getRepos));
   app.use('/rebalance', rebalanceRouter(getRepos));
 
-  const provider = createProvider(config.marketDataProvider);
+  // Realtime board reads last-synced quotes from the DB (no scraping loop);
+  // scraping happens only on the explicit Sync action.
+  const provider = new DbQuoteProvider(getRepos);
   const quoteService = new QuoteService(
     provider,
     async () => (await (await getRepos()).companies.findAll()).map((c) => c.symbol),
-    config.marketPersist
-      ? async (quotes: Quote[]) => {
-          await (await getRepos()).quotes.upsertMany(quotes);
-        }
-      : async () => {},
+    async () => {}, // no write-back; the DB is already the source of truth
     config.quoteFreshnessMs
   );
-  app.use('/market', marketRouter(quoteService));
+  app.use('/market', marketRouter(quoteService, getRepos));
 
   app.use('/auth', authRouter(getAccount));
   app.use('/me', accountRouter(getAccount, getRepos));
@@ -90,7 +88,7 @@ export function createApp(): AppContext {
       status: 'ok',
       env: config.env,
       db: dbOk ? 'connected' : 'unavailable',
-      provider: config.marketDataProvider,
+      provider: provider.name,
       timestamp: new Date().toISOString(),
     });
   });

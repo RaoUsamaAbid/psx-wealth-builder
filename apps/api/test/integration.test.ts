@@ -134,10 +134,10 @@ describe('engine endpoints', () => {
 });
 
 describe('market', () => {
-  it('GET /market/status reports the provider', async () => {
+  it('GET /market/status reports the DB-backed provider', async () => {
     const res = await request(app).get('/market/status');
     expect(res.status).toBe(200);
-    expect(res.body.source).toBe('mock');
+    expect(res.body.source).toBe('synced');
   });
 });
 

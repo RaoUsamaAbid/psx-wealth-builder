@@ -1,20 +1,25 @@
 import { Router } from 'express';
 import type { QuoteService } from '../market/quote-service.js';
+import type { Repositories } from '../repositories.js';
+import { asyncHandler } from '../async-handler.js';
+import { requireAuth } from '../auth/jwt.js';
+import { runMarketSync, getSyncStatus } from '../market/sync.js';
 
-export function marketRouter(quotes: QuoteService): Router {
+type ReposResolver = () => Promise<Repositories>;
+
+export function marketRouter(quotes: QuoteService, getRepos: ReposResolver): Router {
   const router = Router();
 
-  // GET /market/status — source, realtime status, last updated, freshness.
+  // GET /market/status — provider, realtime status, last updated, freshness.
   router.get('/status', (_req, res) => {
     res.json(quotes.snapshot());
   });
 
-  // GET /market/quotes — cached quotes + status header fields.
+  // GET /market/quotes — cached quotes (from the last sync).
   router.get('/quotes', (_req, res) => {
     res.json({ ...quotes.snapshot(), quotes: quotes.quotesList() });
   });
 
-  // GET /market/quotes/:symbol — single cached quote.
   router.get('/quotes/:symbol', (req, res) => {
     const quote = quotes.getQuote(req.params.symbol ?? '');
     if (!quote) {
@@ -23,6 +28,26 @@ export function marketRouter(quotes: QuoteService): Router {
     }
     res.json({ ...quotes.snapshot(), quote });
   });
+
+  // GET /market/sync/status — last sync time + counts.
+  router.get(
+    '/sync/status',
+    asyncHandler(async (_req, res) => {
+      res.json({ sync: await getSyncStatus(await getRepos()) });
+    })
+  );
+
+  // POST /market/sync — scrape PSX market-watch and refresh the DB universe.
+  // Any signed-in user can trigger it.
+  router.post(
+    '/sync',
+    requireAuth,
+    asyncHandler(async (_req, res) => {
+      const status = await runMarketSync(await getRepos());
+      await quotes.refresh(); // immediately reflect new prices on the live board
+      res.json({ sync: status });
+    })
+  );
 
   return router;
 }

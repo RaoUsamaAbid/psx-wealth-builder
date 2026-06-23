@@ -79,16 +79,24 @@ export function parsePsxMarketWatch(html: string, asOf = new Date().toISOString(
   return quotes;
 }
 
-/** Fetch + parse PSX market watch. Returns [] on any network/parse error. */
-export async function scrapePsx(baseUrl: string = DEFAULT_BASE): Promise<Quote[]> {
+/** Fetch the raw market-watch HTML. Returns null on any network error. */
+export async function fetchPsxMarketWatchHtml(
+  baseUrl: string = DEFAULT_BASE
+): Promise<string | null> {
   try {
     const res = await fetch(`${baseUrl}/market-watch`, {
       headers: { 'user-agent': USER_AGENT },
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(15000),
     });
-    if (!res.ok) return [];
-    return parsePsxMarketWatch(await res.text());
+    if (!res.ok) return null;
+    return await res.text();
   } catch {
-    return [];
+    return null;
   }
+}
+
+/** Fetch + parse PSX market watch. Returns [] on any network/parse error. */
+export async function scrapePsx(baseUrl: string = DEFAULT_BASE): Promise<Quote[]> {
+  const html = await fetchPsxMarketWatchHtml(baseUrl);
+  return html ? parsePsxMarketWatch(html) : [];
 }

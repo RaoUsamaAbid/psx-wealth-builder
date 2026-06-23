@@ -58,6 +58,14 @@ export interface HealthResponse {
 }
 export type RebalanceResponse = RebalanceResult;
 
+export interface SyncStatus {
+  lastSyncedAt: string;
+  companies: number;
+  quotes: number;
+  durationMs: number;
+  source: string;
+}
+
 export interface SavedPortfolio {
   id: string;
   name: string;

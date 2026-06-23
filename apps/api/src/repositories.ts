@@ -6,7 +6,16 @@ export const COLLECTIONS = {
   quotes: 'quotes',
   fundamentals: 'fundamentals',
   dividends: 'dividends',
+  meta: 'meta',
 } as const;
+
+export interface SyncStatus {
+  lastSyncedAt: string;
+  companies: number;
+  quotes: number;
+  durationMs: number;
+  source: string;
+}
 
 /** MongoDB stores these without the driver's _id leaking into the domain type. */
 type Doc<T> = T & { _id?: never };
@@ -50,6 +59,11 @@ export class CompanyRepository {
       }))
     );
   }
+
+  async deleteNotIn(symbols: string[]): Promise<number> {
+    const res = await this.col.deleteMany({ symbol: { $nin: symbols } });
+    return res.deletedCount;
+  }
 }
 
 export class QuoteRepository {
@@ -74,6 +88,11 @@ export class QuoteRepository {
       }))
     );
   }
+
+  async deleteNotIn(symbols: string[]): Promise<number> {
+    const res = await this.col.deleteMany({ symbol: { $nin: symbols } });
+    return res.deletedCount;
+  }
 }
 
 export class FundamentalsRepository {
@@ -97,6 +116,11 @@ export class FundamentalsRepository {
         updateOne: { filter: { symbol: f.symbol }, update: { $set: f }, upsert: true },
       }))
     );
+  }
+
+  async deleteNotIn(symbols: string[]): Promise<number> {
+    const res = await this.col.deleteMany({ symbol: { $nin: symbols } });
+    return res.deletedCount;
   }
 }
 
@@ -129,6 +153,11 @@ export class DividendRepository {
       }))
     );
   }
+
+  async deleteNotIn(symbols: string[]): Promise<number> {
+    const res = await this.col.deleteMany({ symbol: { $nin: symbols } });
+    return res.deletedCount;
+  }
 }
 
 /** Create unique indexes. Idempotent — safe to call on every boot/seed. */
@@ -140,11 +169,27 @@ export async function ensureIndexes(db: Db): Promise<void> {
   await db.collection(COLLECTIONS.dividends).createIndex({ symbol: 1, year: 1 }, { unique: true });
 }
 
+/** Small key/value store for app metadata (e.g. last market sync). */
+export class MetaRepository {
+  private readonly col: Collection<{ _id: string; value: unknown }>;
+  constructor(db: Db) {
+    this.col = db.collection(COLLECTIONS.meta);
+  }
+  async get<T>(key: string): Promise<T | null> {
+    const doc = await this.col.findOne({ _id: key });
+    return doc ? (doc.value as T) : null;
+  }
+  async set(key: string, value: unknown): Promise<void> {
+    await this.col.updateOne({ _id: key }, { $set: { value } }, { upsert: true });
+  }
+}
+
 export interface Repositories {
   companies: CompanyRepository;
   quotes: QuoteRepository;
   fundamentals: FundamentalsRepository;
   dividends: DividendRepository;
+  meta: MetaRepository;
 }
 
 export function makeRepositories(db: Db): Repositories {
@@ -153,6 +198,7 @@ export function makeRepositories(db: Db): Repositories {
     quotes: new QuoteRepository(db),
     fundamentals: new FundamentalsRepository(db),
     dividends: new DividendRepository(db),
+    meta: new MetaRepository(db),
   };
 }
 

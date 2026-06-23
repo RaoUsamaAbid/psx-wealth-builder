@@ -1,17 +1,32 @@
 import { useMemo } from 'react';
-import { Activity, Radio } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Activity, Radio, RefreshCw } from 'lucide-react';
 import { useMarket } from '../store/market';
 import { timeAgo } from '../lib/format';
+import { api, ApiError } from '../lib/api';
+import type { SyncStatus } from '../lib/types';
 import { Card } from '../components/ui/Card';
-import { Badge, Center, Spinner } from '../components/ui/misc';
+import { Button } from '../components/ui/Button';
+import { Badge, Center, Spinner, ErrorNote } from '../components/ui/misc';
 import { cn } from '../lib/cn';
 
 export function MarketPage() {
   const { quotes, prevPrices, snapshot, connected } = useMarket();
+  const qc = useQueryClient();
   const list = useMemo(
     () => Object.values(quotes).sort((a, b) => a.symbol.localeCompare(b.symbol)),
     [quotes]
   );
+
+  const sync = useQuery({
+    queryKey: ['market', 'sync'],
+    queryFn: () => api<{ sync: SyncStatus | null }>('/market/sync/status'),
+  });
+  const syncMut = useMutation({
+    mutationFn: () => api<{ sync: SyncStatus }>('/market/sync', { method: 'POST' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['market', 'sync'] }),
+  });
+  const last = sync.data?.sync;
 
   return (
     <div className="space-y-6">
@@ -19,7 +34,7 @@ export function MarketPage() {
         <div>
           <h1 className="text-2xl font-bold text-white">Live Market</h1>
           <p className="mt-1 text-sm text-slate-400">
-            Realtime PSX quotes, streamed over websockets.
+            Real PSX prices, refreshed on demand from the official market-watch feed.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -42,6 +57,37 @@ export function MarketPage() {
           </span>
         </div>
       </div>
+
+      {/* Sync control */}
+      <Card>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-white">PSX data sync</p>
+            <p className="mt-0.5 text-xs text-slate-400">
+              {last
+                ? `Last synced ${timeAgo(last.lastSyncedAt)} · ${last.companies} Shariah companies · ${last.quotes} quotes`
+                : 'Not synced yet — pull the live KMI-30 / Shariah universe and prices from PSX.'}
+            </p>
+          </div>
+          <Button onClick={() => syncMut.mutate()} loading={syncMut.isPending}>
+            <RefreshCw className={cn('h-4 w-4', syncMut.isPending && 'animate-spin')} />
+            {syncMut.isPending ? 'Syncing…' : 'Sync market data'}
+          </Button>
+        </div>
+        {syncMut.isError && (
+          <div className="mt-3">
+            <ErrorNote
+              message={syncMut.error instanceof ApiError ? syncMut.error.message : 'Sync failed.'}
+            />
+          </div>
+        )}
+        {syncMut.isSuccess && (
+          <p className="mt-3 text-xs text-emerald-soft">
+            Synced {syncMut.data.sync.companies} companies in {syncMut.data.sync.durationMs}ms. The
+            board updates momentarily.
+          </p>
+        )}
+      </Card>
 
       {list.length === 0 ? (
         <Center>

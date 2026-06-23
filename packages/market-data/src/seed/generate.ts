@@ -258,9 +258,9 @@ function round(n: number, dp = 2): number {
   return Math.round(n * f) / f;
 }
 
-export function fundamentalsFor(c: Company): Fundamentals {
+export function fundamentalsFor(c: Company, priceOverride?: number): Fundamentals {
   const p = profileFor(c.sector);
-  const price = priceFor(c);
+  const price = priceOverride && priceOverride > 0 ? priceOverride : priceFor(c);
   const peRatio = Math.max(2, jitter(p.pe, p.pe * 0.25, `${c.symbol}:pe`));
   const pb = Math.max(0.4, jitter(p.pb, p.pb * 0.25, `${c.symbol}:pb`));
   const eps = price / peRatio;
@@ -288,10 +288,11 @@ export function quoteFor(c: Company): Quote {
 }
 
 /** Five years of dividend history, growing toward the latest year. */
-export function dividendsFor(c: Company): Dividend[] {
-  const f = fundamentalsFor(c);
+export function dividendsFor(c: Company, priceOverride?: number): Dividend[] {
+  const f = fundamentalsFor(c, priceOverride);
   const p = profileFor(c.sector);
-  const latest = priceFor(c) * f.dividendYield; // latest amount per share
+  const price = priceOverride && priceOverride > 0 ? priceOverride : priceFor(c);
+  const latest = price * f.dividendYield; // latest amount per share
   const growth = Math.max(0.02, jitter(p.divGrowth, 0.03, `${c.symbol}:dg`));
   const out: Dividend[] = [];
   for (let i = 0; i < 5; i++) {

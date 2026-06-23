@@ -85,8 +85,10 @@ npm run dev
 | POST   | `/projection`                                           | wealth projection: 3 scenarios + CAGR + target    |
 | POST   | `/portfolio-health`                                     | portfolio + 0–100 health score with breakdown     |
 | POST   | `/rebalance`                                            | hold/increase/reduce/replace actions vs target    |
-| GET    | `/market/status`                                        | live source, realtime status, last-updated        |
-| GET    | `/market/quotes` · `/market/quotes/:symbol`             | cached live quotes                                |
+| GET    | `/market/status`                                        | provider, status, last-updated                    |
+| GET    | `/market/quotes` · `/market/quotes/:symbol`             | last-synced quotes                                |
+| POST   | `/market/sync`                                          | scrape PSX → refresh DB universe (auth)           |
+| GET    | `/market/sync/status`                                   | last sync time + counts                           |
 | POST   | `/auth/register` · `/auth/login`                        | create account / log in → JWT                     |
 | GET    | `/auth/me`                                              | current user (Bearer token)                       |
 | —      | `/me/portfolios` · `/me/watchlist` · `/me/history`      | saved data (auth required, CRUD)                  |
@@ -155,24 +157,32 @@ positions, sector concentration, dividend deterioration, and better
 opportunities (high-scoring names not yet held), each with reasons and a
 suggested replacement where relevant.
 
-### Realtime market data
+### Market data: scrape-on-sync
 
-The API runs a quote-refresh loop (`MARKET_REFRESH_MS`, default 5s) backed by a
-pluggable `MARKET_DATA_PROVIDER`:
+The app does **not** poll a live feed. PSX has no free real-time API, so market
+data is pulled **on demand** from the official PSX data portal
+(`dps.psx.com.pk/market-watch`) and **persisted** — the DB is the source of truth
+for all calculations.
 
-- `realtime` — scrapes the PSX data portal, **falls back** to `simulated`
-- `capitalstake` — scrapes CapitalStake, falls back to `simulated`
-- `simulated` — random-walks seed prices (offline demo so quotes keep moving)
-- `mock` — static seed quotes
+**`POST /market/sync`** (any signed-in user) scrapes the market-watch page once
+(~5s) and refreshes the DB:
 
-Each refresh updates an in-memory cache and pushes to connected clients over
-**socket.io** (`quotes:update` / `quotes:status`). `GET /market/status` reports
-`source`, `status` (`live` / `simulated` / `stale` / `down`), and `lastUpdated`.
+- **Companies** — the live **KMI-30** constituents (exactly 30) and the **KMI
+  All-Share** Shariah universe (~290+), with real names, sectors and index
+  membership. Shariah-compliance is derived from KMI membership (KMI = the
+  Shariah-screened index). Non-Shariah names are pruned.
+- **Quotes** — real current prices/change, read from each row's machine-readable
+  `data-order` attribute (mapped by header `data-name`, so a column re-order or
+  icon/`%` in the text can't corrupt values).
+- **Fundamentals/dividends** — the market-watch page carries none, so these are
+  regenerated deterministically from the **real price** (clearly an estimate)
+  until a deep per-company sync is added.
 
-> Scraped quotes are **display-only by default**. Persisting them to MongoDB
-> (which the engines read) is gated behind `MARKET_PERSIST=true` and should stay
-> off until the scraper's column mapping is validated against the live PSX DOM —
-> otherwise a mis-parse corrupts engine inputs.
+**`GET /market/sync/status`** returns the last sync time + counts. The Market
+page shows a **"Sync market data"** button and the live board (quotes are read
+from the DB and pushed over socket.io after a sync). Everything is resilient: a
+fetch/parse failure aborts the sync without touching the existing data, and a
+captured-page fixture test fails CI loudly if PSX changes its DOM.
 
 ### Accounts & auth
 

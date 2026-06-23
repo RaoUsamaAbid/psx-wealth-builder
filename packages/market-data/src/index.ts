@@ -14,8 +14,15 @@ export type { MarketDataProvider } from './provider.js';
 export * from './seed/index.js';
 export { SimulatedRealtimeProvider } from './providers/simulated.js';
 export { ScrapingProvider } from './providers/realtime.js';
-export { scrapePsx, parsePsxMarketWatch } from './scraping/psx.js';
+export { scrapePsx, parsePsxMarketWatch, fetchPsxMarketWatchHtml } from './scraping/psx.js';
 export { scrapeCapitalStake, parseCapitalStake } from './scraping/capitalstake.js';
+export { parsePsxConstituents, type PsxConstituent } from './sync/constituents.js';
+export {
+  buildUniverseFromMarketWatch,
+  buildSectorMap,
+  universeToCompanyData,
+  type SyncedUniverse,
+} from './sync/sync.js';
 
 /** Static seed-backed provider (deterministic; for engines/offline use). */
 export class MockMarketDataProvider implements MarketDataProvider {
